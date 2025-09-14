@@ -1,0 +1,291 @@
+'use server';
+
+import { VeterinarianWorkLocation, WorkSchedule } from '../types/api';
+import { apiRequest } from './config';
+
+export interface CreateWorkLocationDto {
+  name: string;
+  address: string;
+  number: string;
+  complement?: string;
+  neighborhood: string;
+  zipCode: string;
+  stateId: number;
+  cityId: number;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface UpdateWorkLocationDto {
+  name?: string;
+  address?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
+  zipCode?: string;
+  stateId?: number;
+  cityId?: number;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface CreateWorkScheduleDto {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+}
+
+export interface UpdateWorkScheduleDto {
+  dayOfWeek?: number;
+  startTime?: string;
+  endTime?: string;
+  isActive?: boolean;
+}
+
+export interface WorkLocationFilters {
+  stateId?: number;
+  cityId?: number;
+  active?: boolean;
+  orderBy?: 'name' | 'createdAt' | 'updatedAt';
+  orderDirection?: 'asc' | 'desc';
+}
+
+export interface WorkScheduleFilters {
+  active?: boolean;
+  orderBy?: 'dayOfWeek' | 'startTime' | 'createdAt';
+  orderDirection?: 'asc' | 'desc';
+}
+
+export async function createWorkLocation(data: CreateWorkLocationDto): Promise<{
+  success: boolean;
+  workLocation?: VeterinarianWorkLocation;
+  error?: string;
+}> {
+  try {
+    const workLocation = await apiRequest<VeterinarianWorkLocation>('/vet-work-locations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return { success: true, workLocation };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao criar local de trabalho',
+    };
+  }
+}
+
+export async function getWorkLocations(filters?: WorkLocationFilters): Promise<{
+  success: boolean;
+  workLocations?: VeterinarianWorkLocation[];
+  error?: string;
+}> {
+  try {
+    const searchParams = new URLSearchParams();
+    
+    if (filters?.stateId) searchParams.append('stateId', filters.stateId.toString());
+    if (filters?.cityId) searchParams.append('cityId', filters.cityId.toString());
+    if (filters?.active !== undefined) searchParams.append('active', filters.active.toString());
+    if (filters?.orderBy) searchParams.append('orderBy', filters.orderBy);
+    if (filters?.orderDirection) searchParams.append('orderDirection', filters.orderDirection);
+
+    const queryString = searchParams.toString();
+    const url = queryString ? `/vet-work-locations?${queryString}` : '/vet-work-locations';
+    
+    const workLocations = await apiRequest<VeterinarianWorkLocation[]>(url);
+    return { success: true, workLocations };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao buscar locais de trabalho',
+    };
+  }
+}
+
+export async function getWorkLocationById(id: number): Promise<{
+  success: boolean;
+  workLocation?: VeterinarianWorkLocation;
+  error?: string;
+}> {
+  try {
+    const workLocation = await apiRequest<VeterinarianWorkLocation>(`/vet-work-locations/${id}`);
+    return { success: true, workLocation };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao buscar local de trabalho',
+    };
+  }
+}
+
+export async function updateWorkLocation(id: number, data: UpdateWorkLocationDto): Promise<{
+  success: boolean;
+  workLocation?: VeterinarianWorkLocation;
+  error?: string;
+}> {
+  try {
+    const workLocation = await apiRequest<VeterinarianWorkLocation>(`/vet-work-locations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return { success: true, workLocation };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao atualizar local de trabalho',
+    };
+  }
+}
+
+export async function deleteWorkLocation(id: number): Promise<{
+  success: boolean;
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const result = await apiRequest<{ message: string } | null>(`/vet-work-locations/${id}`, {
+      method: 'DELETE',
+    });
+    
+    // Se result é null (204 No Content ou resposta vazia), ainda é sucesso
+    return { 
+      success: true, 
+      message: result?.message || 'Local de trabalho excluído com sucesso' 
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao excluir local de trabalho',
+    };
+  }
+}
+
+export async function createWorkSchedule(locationId: number, data: CreateWorkScheduleDto): Promise<{
+  success: boolean;
+  schedule?: WorkSchedule;
+  error?: string;
+}> {
+  try {
+    const schedule = await apiRequest<WorkSchedule>(`/vet-work-locations/${locationId}/schedules`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return { success: true, schedule };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao criar horário de trabalho',
+    };
+  }
+}
+
+export async function getWorkSchedules(locationId: number, filters?: WorkScheduleFilters): Promise<{
+  success: boolean;
+  schedules?: WorkSchedule[];
+  error?: string;
+}> {
+  try {
+    const searchParams = new URLSearchParams();
+    
+    if (filters?.active !== undefined) searchParams.append('active', filters.active.toString());
+    if (filters?.orderBy) searchParams.append('orderBy', filters.orderBy);
+    if (filters?.orderDirection) searchParams.append('orderDirection', filters.orderDirection);
+
+    const queryString = searchParams.toString();
+    const url = queryString 
+      ? `/vet-work-locations/${locationId}/schedules?${queryString}` 
+      : `/vet-work-locations/${locationId}/schedules`;
+    
+    const schedules = await apiRequest<WorkSchedule[]>(url);
+    return { success: true, schedules };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao buscar horários de trabalho',
+    };
+  }
+}
+
+export async function getWorkScheduleById(scheduleId: number): Promise<{
+  success: boolean;
+  schedule?: WorkSchedule;
+  error?: string;
+}> {
+  try {
+    const schedule = await apiRequest<WorkSchedule>(`/vet-work-locations/schedules/${scheduleId}`);
+    return { success: true, schedule };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao buscar horário de trabalho',
+    };
+  }
+}
+
+export async function updateWorkSchedule(scheduleId: number, data: UpdateWorkScheduleDto): Promise<{
+  success: boolean;
+  schedule?: WorkSchedule;
+  error?: string;
+}> {
+  try {
+    const schedule = await apiRequest<WorkSchedule>(`/vet-work-locations/schedules/${scheduleId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return { success: true, schedule };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao atualizar horário de trabalho',
+    };
+  }
+}
+
+export async function deleteWorkSchedule(scheduleId: number): Promise<{
+  success: boolean;
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const result = await apiRequest<{ message: string } | null>(`/vet-work-locations/schedules/${scheduleId}`, {
+      method: 'DELETE',
+    });
+    
+    // Se result é null (204 No Content ou resposta vazia), ainda é sucesso
+    return { 
+      success: true, 
+      message: result?.message || 'Horário excluído com sucesso' 
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao excluir horário de trabalho',
+    };
+  }
+} 
+
+export async function getVetWorkLocationsByVeterinarianId(
+  veterinarianId: number,
+  filters: {
+    cityId?: number;
+    active?: boolean;
+    orderBy?: 'name' | 'createdAt' | 'updatedAt';
+    orderDirection?: 'asc' | 'desc';
+  } = {}
+): Promise<{ success: boolean; data?: VeterinarianWorkLocation[]; error?: string }> {
+  try {
+    const searchParams = new URLSearchParams();
+    if (filters.cityId) searchParams.append('cityId', filters.cityId.toString());
+    if (filters.active !== undefined) searchParams.append('active', filters.active.toString());
+    if (filters.orderBy) searchParams.append('orderBy', filters.orderBy);
+    if (filters.orderDirection) searchParams.append('orderDirection', filters.orderDirection);
+    
+    const data = await apiRequest<VeterinarianWorkLocation[]>(`/vet-work-locations/veterinarian/${veterinarianId}?${searchParams.toString()}`);
+    return { success: true, data };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao buscar locais de trabalho',
+    };
+  }
+} 
