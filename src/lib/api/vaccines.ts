@@ -4,12 +4,25 @@ import { apiRequest } from './config';
 
 export interface PetVaccine {
   id: number;
-  name: string;
-  date: string;
-  nextDue?: string;
-  veterinarian: string;
-  batch: string;
-  status: 'completed' | 'due' | 'overdue';
+  petId: number;
+  vaccineName: string;
+  vaccinationDate: string;
+  nextDueDate?: string;
+  vetId: number;
+  batchNumber?: string;
+  status: 'PENDENTE' | 'APLICADA' | 'ATRASADA' | 'NÃO APLICADA';
+  notes?: string;
+  createdAt: string;
+}
+
+export interface CreatePetVaccineDto {
+  vaccineName: string;
+  vaccinationDate: string;
+  nextDueDate?: string;
+  vetId: number;
+  batchNumber?: string;
+  status: 'PENDENTE' | 'APLICADA' | 'ATRASADA' | 'NÃO APLICADA';
+  notes?: string;
 }
 
 export async function getPetVaccines(petId: number): Promise<{ success: boolean; vaccines?: PetVaccine[]; error?: string }> {
@@ -25,6 +38,24 @@ export async function getPetVaccines(petId: number): Promise<{ success: boolean;
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Erro ao buscar vacinas do pet',
+    };
+  }
+}
+
+export async function createPetVaccine(petId: number, data: CreatePetVaccineDto): Promise<{ success: boolean; vaccine?: PetVaccine; error?: string }> {
+  try {
+    const vaccine = await apiRequest<PetVaccine>(`/pet-vaccine/${petId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    return { success: true, vaccine };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao criar vacina do pet',
     };
   }
 } 

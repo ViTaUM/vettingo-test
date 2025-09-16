@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getPetById } from '@/lib/api/pets';
-import { getPetVaccines, PetVaccine } from '@/lib/api/vaccines';
+import { getPetVaccines, createPetVaccine, PetVaccine, CreatePetVaccineDto } from '@/lib/api/vaccines';
 import { ArrowLeft, Edit3, Calendar, FileText, Syringe, Plus, Eye, Download, X } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -52,11 +52,13 @@ export default function PetDetailsPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [vaccineFormData, setVaccineFormData] = useState({
-    name: '',
-    date: '',
-    nextDue: '',
-    veterinarian: '',
-    batch: '',
+    vaccineName: '',
+    vaccinationDate: '',
+    nextDueDate: '',
+    vetId: 1,
+    batchNumber: '',
+    status: 'PENDENTE' as 'PENDENTE' | 'APLICADA' | 'ATRASADA' | 'NÃO APLICADA',
+    notes: '',
   });
   const [documentFormData, setDocumentFormData] = useState({
     name: '',
@@ -174,18 +176,31 @@ export default function PetDetailsPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed':
+      case 'APLICADA':
         return 'bg-green-100 text-green-800';
-      case 'scheduled':
-        return 'bg-blue-100 text-blue-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      case 'due':
+      case 'PENDENTE':
         return 'bg-yellow-100 text-yellow-800';
-      case 'overdue':
+      case 'ATRASADA':
         return 'bg-red-100 text-red-800';
+      case 'NÃO APLICADA':
+        return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'APLICADA':
+        return 'Aplicada';
+      case 'PENDENTE':
+        return 'Pendente';
+      case 'ATRASADA':
+        return 'Atrasada';
+      case 'NÃO APLICADA':
+        return 'Não Aplicada';
+      default:
+        return status;
     }
   };
 
@@ -202,48 +217,54 @@ export default function PetDetailsPage() {
     }
   };
 
-  const handleVaccineSubmit = (e: React.FormEvent) => {
+  const handleVaccineSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validação básica
-    if (!vaccineFormData.name || !vaccineFormData.date || !vaccineFormData.veterinarian || !vaccineFormData.batch) {
+    if (!vaccineFormData.vaccineName || !vaccineFormData.vaccinationDate || !vaccineFormData.status) {
       toast.error('Por favor, preencha todos os campos obrigatórios');
       return;
     }
 
-    // Aqui você adicionaria a lógica para salvar a vacina na API
-    // Por enquanto, vamos apenas simular o sucesso
-    const newVaccine: PetVaccine = {
-      id: vaccines.length + 1,
-      name: vaccineFormData.name,
-      date: vaccineFormData.date,
-      nextDue: vaccineFormData.nextDue || undefined,
-      veterinarian: vaccineFormData.veterinarian,
-      batch: vaccineFormData.batch,
-      status: 'completed',
-    };
+    try {
+      // Preparar dados para API
+      const vaccineData: CreatePetVaccineDto = {
+        vaccineName: vaccineFormData.vaccineName,
+        vaccinationDate: vaccineFormData.vaccinationDate,
+        nextDueDate: vaccineFormData.nextDueDate || undefined,
+        vetId: vaccineFormData.vetId,
+        batchNumber: vaccineFormData.batchNumber || undefined,
+        status: vaccineFormData.status,
+        notes: vaccineFormData.notes || undefined,
+      };
 
-    // Adicionar à lista de vacinas
-    setVaccines([...vaccines, newVaccine]);
-    
-    toast.success('Vacina registrada com sucesso!');
-    setIsVaccineModalOpen(false);
-    setVaccineFormData({
-      name: '',
-      date: '',
-      nextDue: '',
-      veterinarian: '',
-      batch: '',
-    });
+      // Chamar API para criar vacina
+      const result = await createPetVaccine(petId, vaccineData);
+
+      if (result.success && result.vaccine) {
+        // Adicionar à lista de vacinas
+        setVaccines([...vaccines, result.vaccine]);
+        toast.success('Vacina registrada com sucesso!');
+        setIsVaccineModalOpen(false);
+        resetVaccineForm();
+      } else {
+        toast.error(result.error || 'Erro ao registrar vacina');
+      }
+    } catch (error) {
+      toast.error('Erro ao registrar vacina');
+      console.error('Erro ao registrar vacina:', error);
+    }
   };
 
   const resetVaccineForm = () => {
     setVaccineFormData({
-      name: '',
-      date: '',
-      nextDue: '',
-      veterinarian: '',
-      batch: '',
+      vaccineName: '',
+      vaccinationDate: '',
+      nextDueDate: '',
+      vetId: 1,
+      batchNumber: '',
+      status: 'PENDENTE' as 'PENDENTE' | 'APLICADA' | 'ATRASADA' | 'NÃO APLICADA',
+      notes: '',
     });
   };
 
@@ -654,34 +675,37 @@ export default function PetDetailsPage() {
                 </div>
               ) : (
                 vaccines.map((vaccine) => (
-                  <div key={vaccine.id} className="rounded-lg border border-gray-200 bg-white p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3">
-                          <h4 className="font-medium text-gray-900">{vaccine.name}</h4>
-                          <span
-                            className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(vaccine.status)}`}>
-                            {vaccine.status === 'completed'
-                              ? 'Aplicada'
-                              : vaccine.status === 'due'
-                                ? 'Próxima dose'
-                                : 'Em atraso'}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-sm text-gray-500">
-                          Aplicada em: {new Date(vaccine.date).toLocaleDateString('pt-BR')}
-                        </p>
-                        {vaccine.nextDue && (
-                          <p className="text-sm text-gray-500">
-                            Próxima dose: {new Date(vaccine.nextDue).toLocaleDateString('pt-BR')}
-                          </p>
-                        )}
-                        <p className="mt-1 text-xs text-gray-400">
-                          {vaccine.veterinarian} • Lote: {vaccine.batch}
-                        </p>
+                <div key={vaccine.id} className="rounded-lg border border-gray-200 bg-white p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3">
+                        <h4 className="font-medium text-gray-900">{vaccine.vaccineName}</h4>
+                        <span
+                          className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(vaccine.status)}`}>
+                          {getStatusLabel(vaccine.status)}
+                        </span>
                       </div>
+                      <p className="mt-1 text-sm text-gray-500">
+                        {vaccine.status === 'APLICADA' ? 'Aplicada em: ' : 'Data: '}
+                        {new Date(vaccine.vaccinationDate).toLocaleDateString('pt-BR')}
+                      </p>
+                      {vaccine.nextDueDate && (
+                        <p className="text-sm text-gray-500">
+                          Próxima dose: {new Date(vaccine.nextDueDate).toLocaleDateString('pt-BR')}
+                        </p>
+                      )}
+                      {vaccine.notes && (
+                        <p className="text-sm text-gray-500">
+                          Observações: {vaccine.notes}
+                        </p>
+                      )}
+                      <p className="mt-1 text-xs text-gray-400">
+                        {vaccine.batchNumber && `Lote: ${vaccine.batchNumber} • `}
+                        Veterinário ID: {vaccine.vetId} • Registrado em: {new Date(vaccine.createdAt).toLocaleDateString('pt-BR')}
+                      </p>
                     </div>
                   </div>
+                </div>
                 ))
               )}
             </div>
@@ -713,8 +737,8 @@ export default function PetDetailsPage() {
                 <input
                   type="text"
                   required
-                  value={vaccineFormData.name}
-                  onChange={(e) => setVaccineFormData({ ...vaccineFormData, name: e.target.value })}
+                  value={vaccineFormData.vaccineName}
+                  onChange={(e) => setVaccineFormData({ ...vaccineFormData, vaccineName: e.target.value })}
                   placeholder="Ex: V10 (Déctupla), Antirrábica..."
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
@@ -722,13 +746,13 @@ export default function PetDetailsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Data da Aplicação *
+                  Data da Vacinação *
                 </label>
                 <input
                   type="date"
                   required
-                  value={vaccineFormData.date}
-                  onChange={(e) => setVaccineFormData({ ...vaccineFormData, date: e.target.value })}
+                  value={vaccineFormData.vaccinationDate}
+                  onChange={(e) => setVaccineFormData({ ...vaccineFormData, vaccinationDate: e.target.value })}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -739,37 +763,52 @@ export default function PetDetailsPage() {
                 </label>
                 <input
                   type="date"
-                  value={vaccineFormData.nextDue}
-                  onChange={(e) => setVaccineFormData({ ...vaccineFormData, nextDue: e.target.value })}
+                  value={vaccineFormData.nextDueDate}
+                  onChange={(e) => setVaccineFormData({ ...vaccineFormData, nextDueDate: e.target.value })}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Veterinário Responsável *
+                  Número do Lote (opcional)
                 </label>
                 <input
                   type="text"
-                  required
-                  value={vaccineFormData.veterinarian}
-                  onChange={(e) => setVaccineFormData({ ...vaccineFormData, veterinarian: e.target.value })}
-                  placeholder="Ex: Dr. Maria Silva"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Número do Lote *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={vaccineFormData.batch}
-                  onChange={(e) => setVaccineFormData({ ...vaccineFormData, batch: e.target.value })}
+                  value={vaccineFormData.batchNumber}
+                  onChange={(e) => setVaccineFormData({ ...vaccineFormData, batchNumber: e.target.value })}
                   placeholder="Ex: VAC2024001"
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Status *
+                </label>
+                <select
+                  required
+                  value={vaccineFormData.status}
+                  onChange={(e) => setVaccineFormData({ ...vaccineFormData, status: e.target.value as 'PENDENTE' | 'APLICADA' | 'ATRASADA' | 'NÃO APLICADA' })}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="PENDENTE">Pendente</option>
+                  <option value="APLICADA">Aplicada</option>
+                  <option value="ATRASADA">Atrasada</option>
+                  <option value="NÃO APLICADA">Não Aplicada</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Observações (opcional)
+                </label>
+                <textarea
+                  rows={3}
+                  value={vaccineFormData.notes}
+                  onChange={(e) => setVaccineFormData({ ...vaccineFormData, notes: e.target.value })}
+                  placeholder="Ex: Fórmula nova, reações observadas..."
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
                 />
               </div>
 

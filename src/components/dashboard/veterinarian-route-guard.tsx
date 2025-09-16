@@ -14,7 +14,8 @@ interface VeterinarianRouteGuardProps {
 const ALLOWED_ROUTES_WITHOUT_PROFILE = [
   '/dashboard/veterinario/perfil',
   '/dashboard/veterinario/configuracoes',
-  '/dashboard/veterinario/seguranca'
+  '/dashboard/veterinario/seguranca',
+  '/dashboard/veterinario/assinatura'
 ];
 
 export default function VeterinarianRouteGuard({ children }: VeterinarianRouteGuardProps) {

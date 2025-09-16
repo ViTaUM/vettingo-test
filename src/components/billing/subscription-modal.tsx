@@ -28,7 +28,7 @@ export default function SubscriptionModal({ isOpen, onClose, onSuccess, initialS
   const [selectedPeriod, setSelectedPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-
+  const [period, setPeriod] = useState<'month' | 'year'>('month');
   const { plans } = useSubscriptionPlans();
   const { paymentMethods } = usePaymentMethodsContext();
 
@@ -156,18 +156,18 @@ export default function SubscriptionModal({ isOpen, onClose, onSuccess, initialS
 
       <div className="flex justify-center space-x-4 mb-6">
         <button
-          onClick={() => setSelectedPeriod('monthly')}
+          onClick={() => setPeriod('month')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            selectedPeriod === 'monthly'
+            period === 'month'
               ? 'bg-blue-100 text-blue-700'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}>
           Mensal
         </button>
         <button
-          onClick={() => setSelectedPeriod('yearly')}
+          onClick={() => setPeriod('year')}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            selectedPeriod === 'yearly'
+            period === 'year'
               ? 'bg-blue-100 text-blue-700'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}>
@@ -181,7 +181,7 @@ export default function SubscriptionModal({ isOpen, onClose, onSuccess, initialS
           .filter((plan) => plan.slug !== 'FREE')
           .map((plan) => {
             const color = getPlanColor(plan.slug);
-                         const price = selectedPeriod === 'monthly' ? (plan.priceMonthly || plan.price || 0) : (plan.priceYearly || plan.price || 0);
+                         const price = period === 'month' ? (plan.priceMonthly || plan.price || 0) : (plan.priceYearly || plan.price || 0);
             const isPopular = plan.slug === 'PRO';
 
             return (
@@ -217,7 +217,7 @@ export default function SubscriptionModal({ isOpen, onClose, onSuccess, initialS
                        {formatPrice(price)}
                      </div>
                      <div className={`text-sm ${isPopular ? 'text-white/80' : 'text-gray-500'}`}>
-                       /{selectedPeriod === 'monthly' ? 'mês' : 'ano'}
+                       /{period === 'month' ? 'mês' : 'ano'}
                      </div>
                    </div>
                  </div>
@@ -326,13 +326,13 @@ export default function SubscriptionModal({ isOpen, onClose, onSuccess, initialS
         </div>
         <div className="flex justify-between items-center">
           <span className="text-gray-600">Período:</span>
-          <span className="font-medium text-gray-900 capitalize">{selectedPeriod}</span>
+          <span className="font-medium text-gray-900 capitalize">{period}</span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-gray-600">Valor:</span>
           <span className="font-medium text-gray-900">
                          {selectedPlan && formatPrice(
-               selectedPeriod === 'monthly' ? (selectedPlan.priceMonthly || selectedPlan.price || 0) : (selectedPlan.priceYearly || selectedPlan.price || 0)
+               period === 'month' ? (selectedPlan.priceMonthly || selectedPlan.price || 0) : (selectedPlan.priceYearly || selectedPlan.price || 0)
              )}
           </span>
         </div>

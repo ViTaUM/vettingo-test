@@ -48,7 +48,7 @@ export default function RootLayout({
       <body className={`${interSans.variable} antialiased`}>
         <AuthErrorBoundary>
           <AuthGuard>
-            <LoadingProvider>{children}</LoadingProvider>
+        <LoadingProvider>{children}</LoadingProvider>
           </AuthGuard>
         </AuthErrorBoundary>
       </body>

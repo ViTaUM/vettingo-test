@@ -63,6 +63,7 @@ export default function VetDashboardSidebar({ user: userProp }: VetDashboardSide
           href: '/dashboard/veterinario/assinatura',
           icon: CreditCard,
           description: 'Gerenciar assinatura',
+          // Removido disabled: a assinatura deve estar sempre acessível
         },
         {
           name: 'Configurações',
