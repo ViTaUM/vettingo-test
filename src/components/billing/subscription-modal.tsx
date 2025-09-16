@@ -10,6 +10,8 @@ import { Check, CreditCard, Crown, Shield, Star } from 'lucide-react';
 import { Fragment, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import AddCardForm from './add-card-form';
+import { loadStripe } from '@stripe/stripe-js';
+import stripePromise from '@/lib/stripe';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -20,7 +22,7 @@ interface SubscriptionModalProps {
 
 
 
-type Step = 'plan-selection' | 'payment-method' | 'add-card' | 'confirmation';
+type Step = 'plan-selection' | 'payment-method' | 'add-card' | 'confirmation' | 'payment-processing';
 
 export default function SubscriptionModal({ isOpen, onClose, onSuccess, initialStep = 'plan-selection' }: SubscriptionModalProps) {
   const [currentStep, setCurrentStep] = useState<Step>(initialStep);
@@ -114,19 +116,58 @@ export default function SubscriptionModal({ isOpen, onClose, onSuccess, initialS
 
     setIsProcessing(true);
     try {
-      await createSubscription({
+      const response = await createSubscription({
         planSlug: selectedPlan.slug,
         paymentMethodId: selectedPaymentMethod,
+        period: period === 'month' ? 'month' : 'year',
       });
 
-      toast.success('Assinatura criada com sucesso!');
-      onSuccess();
-      onClose();
+      // Se o backend retornou clientSecret, precisamos confirmar o pagamento
+      if (response.clientSecret) {
+        setCurrentStep('payment-processing');
+        await handleStripePayment(response.clientSecret);
+      } else {
+        // Assinatura foi criada sem necessidade de confirmação adicional
+        toast.success('Assinatura criada com sucesso!');
+        onSuccess();
+        onClose();
+      }
     } catch (error) {
       toast.error('Erro ao criar assinatura. Tente novamente.');
       console.error('Erro na assinatura:', error);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleStripePayment = async (clientSecret: string) => {
+    try {
+      const stripe = await stripePromise;
+      if (!stripe) {
+        throw new Error('Stripe não foi carregado');
+      }
+
+      // Confirmar o pagamento usando o payment method já selecionado
+      const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: selectedPaymentMethod!,
+      });
+
+      if (error) {
+        console.error('Erro no pagamento:', error);
+        toast.error(`Erro no pagamento: ${error.message}`);
+        setCurrentStep('confirmation'); // Voltar para confirmação
+      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+        toast.success('Pagamento confirmado! Assinatura ativada com sucesso!');
+        onSuccess();
+        onClose();
+      } else {
+        toast.error('Pagamento não foi concluído. Tente novamente.');
+        setCurrentStep('confirmation'); // Voltar para confirmação
+      }
+    } catch (error) {
+      console.error('Erro ao processar pagamento:', error);
+      toast.error('Erro ao processar pagamento. Tente novamente.');
+      setCurrentStep('confirmation'); // Voltar para confirmação
     }
   };
 
@@ -312,6 +353,35 @@ export default function SubscriptionModal({ isOpen, onClose, onSuccess, initialS
     </div>
   );
 
+  const renderPaymentProcessing = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h3 className="text-lg font-semibold text-gray-900">Processando Pagamento</h3>
+        <p className="text-sm text-gray-600 mt-1">Aguarde enquanto confirmamos seu pagamento</p>
+      </div>
+
+      <div className="flex flex-col items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600 mb-4"></div>
+        <p className="text-gray-600 text-sm">Confirmando pagamento com o Stripe...</p>
+        <p className="text-gray-500 text-xs mt-2">Isso pode levar alguns segundos</p>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start space-x-3">
+          <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <svg className="w-3 h-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="text-sm text-blue-800">
+            <p className="font-medium mb-1">Não feche esta janela</p>
+            <p>O pagamento está sendo processado de forma segura pelo Stripe.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderConfirmation = () => (
     <div className="space-y-6">
       <div className="text-center">
@@ -370,12 +440,14 @@ export default function SubscriptionModal({ isOpen, onClose, onSuccess, initialS
         return 'Adicionar Cartão';
       case 'confirmation':
         return 'Confirmar Assinatura';
+      case 'payment-processing':
+        return 'Processando Pagamento';
       default:
         return 'Assinatura';
     }
   };
 
-  const canGoBack = currentStep !== 'plan-selection' && currentStep !== initialStep;
+  const canGoBack = currentStep !== 'plan-selection' && currentStep !== initialStep && currentStep !== 'payment-processing';
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -410,7 +482,13 @@ export default function SubscriptionModal({ isOpen, onClose, onSuccess, initialS
                       </div>
                       <div>
                         <h2 className="text-xl font-semibold text-gray-900">{getStepTitle()}</h2>
-                        <p className="text-sm text-gray-600 mt-1">Fluxo de assinatura em {currentStep === 'plan-selection' ? '1' : currentStep === 'payment-method' ? '2' : currentStep === 'add-card' ? '3' : '3'} de 3 passos</p>
+                        <p className="text-sm text-gray-600 mt-1">Fluxo de assinatura em {
+                          currentStep === 'plan-selection' ? '1' : 
+                          currentStep === 'payment-method' ? '2' : 
+                          currentStep === 'add-card' ? '3' : 
+                          currentStep === 'confirmation' ? '3' :
+                          currentStep === 'payment-processing' ? '4' : '3'
+                        } de {currentStep === 'payment-processing' ? '4' : '3'} passos</p>
                       </div>
                     </div>
                     <button
@@ -433,40 +511,43 @@ export default function SubscriptionModal({ isOpen, onClose, onSuccess, initialS
                     />
                   )}
                   {currentStep === 'confirmation' && renderConfirmation()}
+                  {currentStep === 'payment-processing' && renderPaymentProcessing()}
                 </div>
 
-                <div className="bg-gray-50 px-6 py-4 flex justify-between items-center">
-                  {canGoBack && (
-                    <UIButton
-                      onClick={handleBack}
-                      variant="outline"
-                      size="md"
-                      disabled={isProcessing}>
-                      Voltar
-                    </UIButton>
-                  )}
-                  
-                  <div className="flex space-x-3 ml-auto">
-                    <UIButton
-                      onClick={handleClose}
-                      variant="outline"
-                      size="md"
-                      disabled={isProcessing}>
-                      Cancelar
-                    </UIButton>
-                    
-                    {currentStep === 'confirmation' && (
+                {currentStep !== 'payment-processing' && (
+                  <div className="bg-gray-50 px-6 py-4 flex justify-between items-center">
+                    {canGoBack && (
                       <UIButton
-                        onClick={handleSubscribe}
-                        loading={isProcessing}
-                        variant="solid"
+                        onClick={handleBack}
+                        variant="outline"
                         size="md"
-                        className="bg-green-600 hover:bg-green-700">
-                        Confirmar Assinatura
+                        disabled={isProcessing}>
+                        Voltar
                       </UIButton>
                     )}
+                    
+                    <div className="flex space-x-3 ml-auto">
+                      <UIButton
+                        onClick={handleClose}
+                        variant="outline"
+                        size="md"
+                        disabled={isProcessing}>
+                        Cancelar
+                      </UIButton>
+                      
+                      {currentStep === 'confirmation' && (
+                        <UIButton
+                          onClick={handleSubscribe}
+                          loading={isProcessing}
+                          variant="solid"
+                          size="md"
+                          className="bg-green-600 hover:bg-green-700">
+                          Confirmar Assinatura
+                        </UIButton>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </DialogPanel>
             </TransitionChild>
           </div>

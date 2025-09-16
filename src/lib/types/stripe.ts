@@ -101,6 +101,7 @@ export interface CreateUserSubscriptionDto {
   planSlug: string;
   paymentMethodId: string;
   couponCode?: string;
+  period: string;
 }
 
 export interface UpdateUserSubscriptionDto {
@@ -124,6 +125,9 @@ export interface SubscriptionResponse {
   createdAt: Date;
   updatedAt: Date;
   subscriptionPlan?: SubscriptionPlanResponse;
+  // Campos para fluxo de pagamento Stripe
+  clientSecret?: string;
+  subscriptionId?: number;
 }
 
 export interface PaymentMethodData {
