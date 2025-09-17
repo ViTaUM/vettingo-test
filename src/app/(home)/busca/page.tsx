@@ -188,7 +188,7 @@ export default function SearchResults() {
       const response = await searchVeterinarians(params);
 
       if (response.success && response.data) {
-        setVeterinarians(response.data.data);
+        setVeterinarians(response.data);
       } else {
         setVeterinarians([]);
         if (response.error) {

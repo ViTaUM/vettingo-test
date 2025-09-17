@@ -289,3 +289,45 @@ export async function getVetWorkLocationsByVeterinarianId(
     };
   }
 } 
+
+export async function searchVeterinariansByWorkLocation(params: {
+  cityId: number;
+  name?: string;
+  crmv?: string;
+  providesHomeService?: boolean;
+  providesEmergencyService?: boolean;
+  gender?: string;
+  availableToday?: boolean;
+  specializationIds?: number[];
+}): Promise<{ success: boolean; data?: any[]; error?: string }> {
+  try {
+    const searchParams = new URLSearchParams();
+
+    // Parâmetro obrigatório
+    searchParams.append('cityId', params.cityId.toString());
+
+    // Parâmetros opcionais
+    if (params.name) searchParams.append('name', params.name);
+    if (params.crmv) searchParams.append('crmv', params.crmv);
+    if (params.providesHomeService !== undefined)
+      searchParams.append('providesHomeService', params.providesHomeService.toString());
+    if (params.providesEmergencyService !== undefined)
+      searchParams.append('providesEmergencyService', params.providesEmergencyService.toString());
+    if (params.gender) searchParams.append('gender', params.gender);
+    if (params.availableToday !== undefined) 
+      searchParams.append('availableToday', params.availableToday.toString());
+    if (params.specializationIds) {
+      params.specializationIds.forEach((id) => searchParams.append('specializationIds', id.toString()));
+    }
+
+    const url = `/vet-work-locations/any?${searchParams.toString()}`;
+    
+    const data = await apiRequest<any[]>(url);
+    return { success: true, data };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao buscar veterinários por locais de trabalho',
+    };
+  }
+} 

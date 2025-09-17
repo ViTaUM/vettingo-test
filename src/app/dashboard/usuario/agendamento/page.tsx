@@ -4,7 +4,7 @@ import SearchFilters from '@/components/search/filters';
 import VeterinarianCard from '@/components/search/veterinarian-card';
 import { PetDataLoading } from '@/components/ui/pet-data-loading';
 import { getCities, getSpecializations, getStates } from '@/lib/api/resources';
-import { searchVeterinarians } from '@/lib/api/veterinarians';
+import { searchVeterinariansByWorkLocation } from '@/lib/api/vet-work-locations';
 import { City, Specialization, SpecializationCategory, State, VeterinarianSearchResult } from '@/lib/types/api';
 import { debounce } from 'lodash';
 import { Calendar, Filter, MapPin, Search, Sparkles, Stethoscope, TrendingUp, Users } from 'lucide-react';
@@ -191,15 +191,11 @@ export default function AgendamentoPage() {
         ...(selectedSpecialization && { specializationIds: [selectedSpecialization.id] }),
       };
 
-      const response = await searchVeterinarians(params);
+      const response = await searchVeterinariansByWorkLocation(params);
 
       if (response.success && response.data) {
-        console.log('Dados recebidos do backend:', response.data);
-        
         // Mapear os dados do backend para o formato esperado pelo componente
         const mappedVeterinarians = response.data.map((vet: any) => {
-          console.log('Mapeando veterinário:', vet);
-          
           return {
             ...vet,
             // Garantir compatibilidade com campos antigos
@@ -213,8 +209,6 @@ export default function AgendamentoPage() {
             lastName: vet.name?.split(' ').slice(-1)[0] || '',
           };
         });
-        
-        console.log('Veterinários mapeados:', mappedVeterinarians);
         setVeterinarians(mappedVeterinarians);
       } else {
         setVeterinarians([]);
