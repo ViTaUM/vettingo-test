@@ -201,3 +201,82 @@ export async function revokeSessionAction(sessionId: string) {
     };
   }
 }
+
+export async function resetPasswordWithToken(token: string, newPassword: string) {
+  try {
+    const apiUrl = process.env.API_URL || 'http://localhost:8080';
+    
+    const response = await fetch(`${apiUrl}/auth/new-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ newPassword }),
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = {
+          message: `Erro HTTP ${response.status}: ${response.statusText}`,
+        };
+      }
+
+      if (response.status === 401) {
+        throw new Error('Token inválido ou expirado');
+      }
+
+      throw new Error(errorData.message || errorData.error || `Erro ${response.status}`);
+    }
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao redefinir senha',
+    };
+  }
+}
+
+export async function forgotPassword(email: string) {
+  try {
+    const apiUrl = process.env.API_URL || 'http://localhost:8080';
+    
+    const response = await fetch(`${apiUrl}/auth/forgot-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = {
+          message: `Erro HTTP ${response.status}: ${response.statusText}`,
+        };
+      }
+
+      throw new Error(errorData.message || errorData.error || `Erro ${response.status}`);
+    }
+
+    const result = await response.json();
+    return { 
+      success: true, 
+      message: result.message || 'Um email de recuperação de senha foi enviado para o endereço informado!' 
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao solicitar recuperação de senha',
+    };
+  }
+}

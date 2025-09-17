@@ -47,6 +47,7 @@ export default function PasswordChangeForm({ onMessage }: PasswordChangeFormProp
   const onSubmit = async (data: PasswordChangeFormData) => {
     setSaving(true);
     try {
+      // Enviar apenas currentPassword e newPassword para a API
       const result = await changePasswordAction(data.currentPassword, data.newPassword);
 
       if (result.success) {
@@ -55,8 +56,9 @@ export default function PasswordChangeForm({ onMessage }: PasswordChangeFormProp
       } else {
         onMessage?.({ type: 'error', text: result.error || 'Erro ao alterar senha' });
       }
-    } catch {
-      onMessage?.({ type: 'error', text: 'Erro ao alterar senha' });
+    } catch (error) {
+      console.error('Erro ao alterar senha:', error);
+      onMessage?.({ type: 'error', text: 'Erro ao alterar senha. Tente novamente.' });
     }
     setSaving(false);
   };

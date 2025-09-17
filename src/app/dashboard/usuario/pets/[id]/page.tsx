@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getPetById } from '@/lib/api/pets';
-import { getPetVaccines, createPetVaccine, PetVaccine, CreatePetVaccineDto } from '@/lib/api/vaccines';
+import { getPetVaccines, createPetVaccine, deletePetVaccine, PetVaccine, CreatePetVaccineDto } from '@/lib/api/vaccines';
+import { getPetDocumentsAction, createPetDocumentAction, PetDocument, CreatePetDocumentDto } from '@/lib/actions/pet-documents';
 import { ArrowLeft, Edit3, Calendar, FileText, Syringe, Plus, Eye, Download, X } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -13,7 +14,7 @@ import { Pet } from '@/lib/types/api';
 import { formatAge } from '@/utils/age';
 import { PawPrint, Weight, Heart, Info } from 'lucide-react';
 
-// Interfaces para dados mock (mantendo apenas para consultas e documentos)
+// Interfaces para dados mock (mantendo apenas para consultas)
 interface Consultation {
   id: number;
   date: string;
@@ -23,15 +24,6 @@ interface Consultation {
   status: 'completed' | 'scheduled' | 'cancelled';
 }
 
-interface Document {
-  id: number;
-  name: string;
-  type: 'exam' | 'prescription' | 'certificate' | 'other';
-  date: string;
-  size: string;
-  url: string;
-}
-
 export default function PetDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -39,6 +31,7 @@ export default function PetDetailsPage() {
 
   const [loading, setLoading] = useState(true);
   const [loadingVaccines, setLoadingVaccines] = useState(false);
+  const [loadingDocuments, setLoadingDocuments] = useState(false);
   const [pet, setPet] = useState<Pet | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'consultations' | 'documents' | 'vaccines'>('overview');
   const [isVaccineModalOpen, setIsVaccineModalOpen] = useState(false);
@@ -47,9 +40,9 @@ export default function PetDetailsPage() {
   const [isConsultationDetailsModalOpen, setIsConsultationDetailsModalOpen] = useState(false);
   const [isDocumentViewModalOpen, setIsDocumentViewModalOpen] = useState(false);
   const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null);
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<PetDocument | null>(null);
   const [vaccines, setVaccines] = useState<PetVaccine[]>([]);
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documents, setDocuments] = useState<PetDocument[]>([]);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [vaccineFormData, setVaccineFormData] = useState({
     vaccineName: '',
@@ -61,9 +54,7 @@ export default function PetDetailsPage() {
     notes: '',
   });
   const [documentFormData, setDocumentFormData] = useState({
-    name: '',
-    type: 'exam' as 'exam' | 'prescription' | 'certificate' | 'other',
-    date: '',
+    title: '',
     file: null as File | null,
   });
   const [consultationFormData, setConsultationFormData] = useState({
@@ -93,24 +84,28 @@ export default function PetDetailsPage() {
     },
   ];
 
-  const mockDocuments: Document[] = [
-    {
-      id: 1,
-      name: 'Exame de Sangue - Dezembro 2024',
-      type: 'exam',
-      date: '2024-12-15',
-      size: '1.2 MB',
-      url: '#',
-    },
-    {
-      id: 2,
-      name: 'Prescrição Médica',
-      type: 'prescription',
-      date: '2024-12-15',
-      size: '0.8 MB',
-      url: '#',
-    },
-  ];
+  // Função para carregar documentos da API
+  const loadDocuments = async () => {
+    if (!petId) return;
+    
+    setLoadingDocuments(true);
+    try {
+      const result = await getPetDocumentsAction(petId);
+      if (result.success && result.documents) {
+        setDocuments(result.documents);
+      } else {
+        setDocuments([]);
+        if (result.error) {
+          console.error('Erro ao carregar documentos:', result.error);
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar documentos:', error);
+      setDocuments([]);
+    } finally {
+      setLoadingDocuments(false);
+    }
+  };
 
   // Função para carregar vacinas da API
   const loadVaccines = async () => {
@@ -120,7 +115,9 @@ export default function PetDetailsPage() {
     try {
       const result = await getPetVaccines(petId);
       if (result.success && result.vaccines) {
-        setVaccines(result.vaccines);
+        // Filtrar vacinas que não foram deletadas (sem deletedAt ou deletedAt null)
+        const activeVaccines = result.vaccines.filter(vaccine => !vaccine.deletedAt);
+        setVaccines(activeVaccines);
       } else {
         setVaccines([]);
         if (result.error) {
@@ -151,8 +148,9 @@ export default function PetDetailsPage() {
       fetchPet();
       // Carregar vacinas da API
       loadVaccines();
-      // Inicializar com dados mock apenas para consultas e documentos
-      setDocuments(mockDocuments);
+      // Carregar documentos da API
+      loadDocuments();
+      // Inicializar com dados mock apenas para consultas
       setConsultations(mockConsultations);
     }
   }, [petId, router]);
@@ -268,40 +266,81 @@ export default function PetDetailsPage() {
     });
   };
 
-  const handleDocumentSubmit = (e: React.FormEvent) => {
+  const handleDeleteVaccine = async (vaccineId: number) => {
+    // Confirmar antes de deletar
+    if (!confirm('Tem certeza que deseja excluir esta vacina? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+
+    try {
+      const result = await deletePetVaccine(vaccineId);
+      
+      if (result.success) {
+        // Recarregar a lista de vacinas para refletir a exclusão
+        await loadVaccines();
+        toast.success('Vacina excluída com sucesso!');
+      } else {
+        toast.error(result.error || 'Erro ao excluir vacina');
+      }
+    } catch (error) {
+      toast.error('Erro ao excluir vacina');
+      console.error('Erro ao excluir vacina:', error);
+    }
+  };
+
+  const handleDocumentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validação básica
-    if (!documentFormData.name || !documentFormData.date || !documentFormData.file) {
+    if (!documentFormData.title || !documentFormData.file) {
       toast.error('Por favor, preencha todos os campos obrigatórios');
       return;
     }
 
-    // Simular tamanho do arquivo (em uma implementação real, viria do arquivo)
-    const fileSizeInMB = (documentFormData.file.size / (1024 * 1024)).toFixed(1);
+    try {
+      // Converter arquivo para base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(documentFormData.file!);
+      });
 
-    const newDocument: Document = {
-      id: documents.length + 1,
-      name: documentFormData.name,
-      type: documentFormData.type,
-      date: documentFormData.date,
-      size: `${fileSizeInMB} MB`,
-      url: '#', // Em uma implementação real, seria a URL do arquivo uploadado
-    };
+      console.log('Dados do documento:', {
+        petId,
+        title: documentFormData.title,
+        fileSize: documentFormData.file!.size,
+        fileType: documentFormData.file!.type,
+        base64Length: base64.length
+      });
 
-    // Adicionar à lista de documentos
-    setDocuments([...documents, newDocument]);
-    
-    toast.success('Documento adicionado com sucesso!');
-    setIsDocumentModalOpen(false);
-    resetDocumentForm();
+      // Preparar dados para API
+      const documentData: CreatePetDocumentDto = {
+        title: documentFormData.title,
+        document: base64,
+      };
+
+      // Chamar API para criar documento
+      const result = await createPetDocumentAction(petId, documentData);
+
+      if (result.success && result.document) {
+        // Adicionar à lista de documentos
+        setDocuments([...documents, result.document]);
+        toast.success('Documento adicionado com sucesso!');
+        setIsDocumentModalOpen(false);
+        resetDocumentForm();
+      } else {
+        toast.error(result.error || 'Erro ao adicionar documento');
+      }
+    } catch (error) {
+      toast.error('Erro ao adicionar documento');
+      console.error('Erro ao adicionar documento:', error);
+    }
   };
 
   const resetDocumentForm = () => {
     setDocumentFormData({
-      name: '',
-      type: 'exam',
-      date: '',
+      title: '',
       file: null,
     });
   };
@@ -361,7 +400,7 @@ export default function PetDetailsPage() {
     setSelectedConsultation(null);
   };
 
-  const handleViewDocument = (document: Document) => {
+  const handleViewDocument = (document: PetDocument) => {
     setSelectedDocument(document);
     setIsDocumentViewModalOpen(true);
   };
@@ -371,15 +410,14 @@ export default function PetDetailsPage() {
     setSelectedDocument(null);
   };
 
-  const handleDownloadDocument = (doc: Document) => {
-    // Em uma implementação real, você faria uma requisição para baixar o arquivo
-    // Por enquanto, vamos simular o download
-    toast.success(`Baixando ${doc.name}...`);
+  const handleDownloadDocument = (doc: PetDocument) => {
+    toast.success(`Baixando ${doc.title}...`);
     
-    // Simular download - em produção, você usaria a URL real do documento
+    // Download usando a URL do documento
     const link = document.createElement('a');
-    link.href = doc.url; // Em produção, seria a URL real do arquivo
-    link.download = doc.name;
+    link.href = doc.document; // URL do documento
+    link.download = doc.title;
+    link.target = '_blank'; // Abrir em nova aba para evitar problemas de CORS
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -617,28 +655,49 @@ export default function PetDetailsPage() {
               </UIButton>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {documents.map((document) => (
-                <div key={document.id} className="rounded-lg border border-gray-200 bg-white p-4">
-                  <div className="flex items-start space-x-3">
-                    <span className="text-2xl">{getDocumentIcon(document.type)}</span>
-                    <div className="min-w-0 flex-1">
-                      <h4 className="truncate font-medium text-gray-900">{document.name}</h4>
-                      <p className="text-sm text-gray-500">
-                        {new Date(document.date).toLocaleDateString('pt-BR')} • {document.size}
-                      </p>
-                    </div>
-                    <div className="flex space-x-2">
-                      <UIButton variant="ghost" size="sm" onClick={() => handleViewDocument(document)}>
-                        <Eye className="h-4 w-4" />
-                      </UIButton>
-                      <UIButton variant="ghost" size="sm" onClick={() => handleDownloadDocument(document)}>
-                        <Download className="h-4 w-4" />
-                      </UIButton>
+            <div className="space-y-3">
+              {loadingDocuments ? (
+                <div className="text-center py-8">
+                  <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></div>
+                  <p className="text-gray-500">Carregando documentos...</p>
+                </div>
+              ) : documents.length === 0 ? (
+                <div className="rounded-lg border border-gray-200 bg-white p-12 text-center">
+                  <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center">
+                    <FileText className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <h3 className="mb-2 text-lg font-semibold text-gray-900">Nenhum documento cadastrado</h3>
+                  <p className="text-gray-600 mb-4 max-w-md mx-auto text-sm">
+                    Ainda não há documentos registrados para este pet. Clique no botão acima para adicionar o primeiro documento.
+                  </p>
+                  <UIButton size="sm" onClick={() => setIsDocumentModalOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Adicionar Primeiro Documento
+                  </UIButton>
+                </div>
+              ) : (
+                documents.map((document) => (
+                  <div key={document.id} className="rounded-lg border border-gray-200 bg-white p-4">
+                    <div className="flex items-start space-x-3">
+                      <span className="text-2xl">📄</span>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="truncate font-medium text-gray-900">{document.title}</h4>
+                        <p className="text-sm text-gray-500">
+                          {new Date(document.createdAt).toLocaleDateString('pt-BR')} • {document.documentLength} MB
+                        </p>
+                      </div>
+                      <div className="flex space-x-2">
+                        <UIButton variant="ghost" size="sm" onClick={() => handleViewDocument(document)}>
+                          <Eye className="h-4 w-4" />
+                        </UIButton>
+                        <UIButton variant="ghost" size="sm" onClick={() => handleDownloadDocument(document)}>
+                          <Download className="h-4 w-4" />
+                        </UIButton>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         )}
@@ -676,7 +735,7 @@ export default function PetDetailsPage() {
               ) : (
                 vaccines.map((vaccine) => (
                 <div key={vaccine.id} className="rounded-lg border border-gray-200 bg-white p-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3">
                         <h4 className="font-medium text-gray-900">{vaccine.vaccineName}</h4>
@@ -704,6 +763,14 @@ export default function PetDetailsPage() {
                         Veterinário ID: {vaccine.vetId} • Registrado em: {new Date(vaccine.createdAt).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
+                    {/* Botão de excluir */}
+                    <button
+                      onClick={() => handleDeleteVaccine(vaccine.id)}
+                      className="ml-4 flex-shrink-0 rounded-full p-1 text-red-400 hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+                      title="Excluir vacina"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
                 ))
@@ -851,44 +918,14 @@ export default function PetDetailsPage() {
             <form onSubmit={handleDocumentSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nome do Documento *
+                  Título do Documento *
                 </label>
                 <input
                   type="text"
                   required
-                  value={documentFormData.name}
-                  onChange={(e) => setDocumentFormData({ ...documentFormData, name: e.target.value })}
+                  value={documentFormData.title}
+                  onChange={(e) => setDocumentFormData({ ...documentFormData, title: e.target.value })}
                   placeholder="Ex: Exame de Sangue - Janeiro 2025"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tipo de Documento *
-                </label>
-                <select
-                  required
-                  value={documentFormData.type}
-                  onChange={(e) => setDocumentFormData({ ...documentFormData, type: e.target.value as 'exam' | 'prescription' | 'certificate' | 'other' })}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                  <option value="exam">Exame</option>
-                  <option value="prescription">Prescrição</option>
-                  <option value="certificate">Certificado</option>
-                  <option value="other">Outro</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Data do Documento *
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={documentFormData.date}
-                  onChange={(e) => setDocumentFormData({ ...documentFormData, date: e.target.value })}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -1141,9 +1178,9 @@ export default function PetDetailsPage() {
           <div className="mx-4 w-full max-w-4xl h-[80vh] rounded-lg bg-white p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">{selectedDocument.name}</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{selectedDocument.title}</h3>
                 <p className="text-sm text-gray-500">
-                  {new Date(selectedDocument.date).toLocaleDateString('pt-BR')} • {selectedDocument.size}
+                  {new Date(selectedDocument.createdAt).toLocaleDateString('pt-BR')}
                 </p>
               </div>
               <div className="flex items-center space-x-2">
@@ -1164,46 +1201,78 @@ export default function PetDetailsPage() {
             </div>
 
             <div className="h-full border border-gray-200 rounded-lg bg-gray-50 flex items-center justify-center">
-              {/* Simulação de visualização de documento */}
-              <div className="text-center">
-                <div className="mb-4">
-                  <span className="text-6xl">{getDocumentIcon(selectedDocument.type)}</span>
-                </div>
-                <h4 className="text-lg font-medium text-gray-900 mb-2">
-                  Visualização de Documento
-                </h4>
-                <p className="text-gray-600 mb-4">
-                  {selectedDocument.type === 'exam' && 'Resultado de exame médico'}
-                  {selectedDocument.type === 'prescription' && 'Prescrição médica'}
-                  {selectedDocument.type === 'certificate' && 'Certificado veterinário'}
-                  {selectedDocument.type === 'other' && 'Documento veterinário'}
-                </p>
-                <div className="bg-white rounded-lg p-4 border border-gray-200 max-w-md mx-auto">
-                  <div className="text-left space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Tipo:</span>
-                      <span className="text-sm font-medium text-gray-900">
-                        {selectedDocument.type === 'exam' && 'Exame'}
-                        {selectedDocument.type === 'prescription' && 'Prescrição'}
-                        {selectedDocument.type === 'certificate' && 'Certificado'}
-                        {selectedDocument.type === 'other' && 'Outro'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Data:</span>
-                      <span className="text-sm font-medium text-gray-900">
-                        {new Date(selectedDocument.date).toLocaleDateString('pt-BR')}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Tamanho:</span>
-                      <span className="text-sm font-medium text-gray-900">{selectedDocument.size}</span>
+              {/* Visualização do documento */}
+              <div className="text-center w-full h-full p-4">
+                {/* Preview do documento se for imagem */}
+                {selectedDocument.document.toLowerCase().includes('.jpg') || 
+                 selectedDocument.document.toLowerCase().includes('.jpeg') || 
+                 selectedDocument.document.toLowerCase().includes('.png') || 
+                 selectedDocument.document.toLowerCase().includes('.gif') ? (
+                  <div className="h-full flex flex-col">
+                    <div className="flex-1 flex items-center justify-center">
+                      <img 
+                        src={selectedDocument.document} 
+                        alt={selectedDocument.title}
+                        className="max-w-full max-h-full object-contain rounded-lg border border-gray-200 shadow-sm"
+                        onError={(e) => {
+                          // Se a imagem não carregar, mostrar fallback
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                      {/* Fallback se a imagem não carregar */}
+                      <div className="hidden text-center">
+                        <div className="mb-4">
+                          <span className="text-6xl">📄</span>
+                        </div>
+                        <h4 className="text-lg font-medium text-gray-900 mb-2">
+                          Documento não pode ser visualizado
+                        </h4>
+                        <p className="text-gray-600 mb-4">
+                          Clique em "Baixar" para acessar o documento
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <p className="text-xs text-gray-500 mt-4">
-                  Em uma implementação real, o conteúdo do documento seria exibido aqui
-                </p>
+                ) : (
+                  // Para documentos não-imagem (PDF, DOC, etc.)
+                  <div className="h-full flex flex-col items-center justify-center">
+                    <div className="mb-4">
+                      <span className="text-6xl">📄</span>
+                    </div>
+                    <h4 className="text-lg font-medium text-gray-900 mb-2">
+                      Visualização de Documento
+                    </h4>
+                    <p className="text-gray-600 mb-4">
+                      Documento veterinário
+                    </p>
+                    <div className="bg-white rounded-lg p-4 border border-gray-200 max-w-md mx-auto">
+                      <div className="text-left space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-500">Título:</span>
+                          <span className="text-sm font-medium text-gray-900">
+                            {selectedDocument.title}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-500">Data:</span>
+                          <span className="text-sm font-medium text-gray-900">
+                            {new Date(selectedDocument.createdAt).toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-gray-500">Tamanho:</span>
+                          <span className="text-sm font-medium text-gray-900">
+                            {selectedDocument.documentLength} MB
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-4">
+                      Clique em "Baixar" para salvar o documento
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

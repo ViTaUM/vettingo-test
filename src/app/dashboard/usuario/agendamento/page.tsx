@@ -10,7 +10,7 @@ import { debounce } from 'lodash';
 import { Calendar, Filter, MapPin, Search, Sparkles, Stethoscope, TrendingUp, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState, useTransition } from 'react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
 import toast from 'react-hot-toast';
 
 interface Option {
@@ -104,13 +104,19 @@ export default function AgendamentoPage() {
     setSelectedAvailableToday(value);
   };
 
-  const handleQueryNameChange = debounce((value: string) => {
-    setQueryName(value);
-  }, 500);
+  const handleQueryNameChange = useCallback(
+    debounce((value: string) => {
+      setQueryName(value);
+    }, 500),
+    []
+  );
 
-  const handleQueryCrmvChange = debounce((value: string) => {
-    setQueryCrmv(value);
-  }, 500);
+  const handleQueryCrmvChange = useCallback(
+    debounce((value: string) => {
+      setQueryCrmv(value);
+    }, 500),
+    []
+  );
 
   const handleCategoryChange = (value: string) => {
     const category = categories.find((c: SpecializationCategory) => c.id.toString() === value);
@@ -188,7 +194,8 @@ export default function AgendamentoPage() {
       const response = await searchVeterinarians(params);
 
       if (response.success && response.data) {
-        setVeterinarians(response.data.data);
+        // A nova API retorna os dados dos veterinários diretamente em response.data
+        setVeterinarians(response.data);
       } else {
         setVeterinarians([]);
         if (response.error) {
@@ -210,7 +217,6 @@ export default function AgendamentoPage() {
     queryName,
     queryCrmv,
     selectedSpecialization,
-    isInitialLoad,
   ]);
 
   // Calculate stats

@@ -13,6 +13,7 @@ export interface PetVaccine {
   status: 'PENDENTE' | 'APLICADA' | 'ATRASADA' | 'NÃO APLICADA';
   notes?: string;
   createdAt: string;
+  deletedAt?: string;
 }
 
 export interface CreatePetVaccineDto {
@@ -56,6 +57,20 @@ export async function createPetVaccine(petId: number, data: CreatePetVaccineDto)
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Erro ao criar vacina do pet',
+    };
+  }
+}
+
+export async function deletePetVaccine(vaccineId: number): Promise<{ success: boolean; error?: string }> {
+  try {
+    await apiRequest<void>(`/pet-vaccine/${vaccineId}`, {
+      method: 'DELETE',
+    });
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao deletar vacina do pet',
     };
   }
 } 

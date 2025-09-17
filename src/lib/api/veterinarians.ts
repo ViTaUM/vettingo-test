@@ -24,7 +24,7 @@ export async function searchVeterinarians(params: {
   gender?: string;
   availableToday?: boolean;
   specializationIds?: number[];
-}): Promise<{ success: boolean; data?: PaginatedResult<VeterinarianSearchResult>; error?: string }> {
+}): Promise<{ success: boolean; data?: VeterinarianSearchResult[]; error?: string }> {
   try {
     const searchParams = new URLSearchParams();
 
@@ -46,9 +46,10 @@ export async function searchVeterinarians(params: {
       params.specializationIds.forEach((id) => searchParams.append('specializationIds', id.toString()));
     }
 
-    const data = await apiRequest<PaginatedResult<VeterinarianSearchResult>>(
-      `/veterinarians?${searchParams.toString()}`,
-    );
+    const url = `/pet-scheduling/search-vet?${searchParams.toString()}`;
+
+    // A nova API retorna os dados dos veterinários diretamente
+    const data = await apiRequest<VeterinarianSearchResult[]>(url);
 
     return { success: true, data };
   } catch (error) {

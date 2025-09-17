@@ -5,22 +5,35 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import MyLink from '@/components/link';
-import { ArrowLeft, Mail, PawPrint, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Mail, PawPrint, CheckCircle, AlertCircle } from 'lucide-react';
+import { forgotPassword } from '@/lib/api/auth';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string>('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
     
-    // Simular verificação do e-mail no banco de dados
-    setTimeout(() => {
+    try {
+      const result = await forgotPassword(email);
+      
+      if (result.success) {
+        setSuccessMessage(result.message || 'Um email de recuperação de senha foi enviado para o endereço informado!');
+        setIsSubmitted(true);
+      } else {
+        setError(result.error || 'Erro ao solicitar recuperação de senha');
+      }
+    } catch (err) {
+      setError('Erro inesperado ao solicitar recuperação de senha');
+    } finally {
       setIsLoading(false);
-      setIsSubmitted(true);
-    }, 1500);
+    }
   };
 
   if (isSubmitted) {
@@ -64,8 +77,10 @@ export default function ForgotPassword() {
                   Instruções enviadas
                 </h2>
                 <p className="mt-2 text-sm text-gray-600">
-                  Enviamos um link para alterar sua senha para o e-mail{' '}
-                  <span className="font-medium text-gray-900">{email}</span>
+                  {successMessage}
+                </p>
+                <p className="mt-2 text-xs text-gray-500">
+                  E-mail enviado para: <span className="font-medium text-gray-900">{email}</span>
                 </p>
                 <p className="mt-2 text-xs text-gray-500">
                   Verifique também sua pasta de spam caso não encontre o e-mail.
@@ -77,6 +92,8 @@ export default function ForgotPassword() {
                   onClick={() => {
                     setIsSubmitted(false);
                     setEmail('');
+                    setError(null);
+                    setSuccessMessage('');
                   }}
                   className="w-full bg-gradient-to-r from-blue-600 to-emerald-600 text-white hover:from-blue-700 hover:to-emerald-700"
                   size="lg">
@@ -155,6 +172,25 @@ export default function ForgotPassword() {
                   Digite o e-mail que você usou para se cadastrar
                 </p>
               </div>
+
+              {/* Mostrar erro se houver */}
+              {error && (
+                <div className="rounded-md bg-red-50 p-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <AlertCircle className="h-5 w-5 text-red-400" />
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-red-800">
+                        Erro ao solicitar recuperação
+                      </h3>
+                      <div className="mt-2 text-sm text-red-700">
+                        <p>{error}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <Button
