@@ -122,8 +122,25 @@ export default function SubscriptionModal({ isOpen, onClose, onSuccess, initialS
         period: period === 'month' ? 'month' : 'year',
       });
 
+      // Se o backend retornou uma URL do Stripe Checkout, abrir em nova aba
+      if (response.url) {
+        toast.success('Redirecionando para o checkout do Stripe...');
+        
+        // Tentar abrir em nova aba
+        const newWindow = window.open(response.url, '_blank');
+        
+        // Verificar se o popup foi bloqueado
+        if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+          toast.error('Popup bloqueado! Por favor, permita popups e tente novamente.');
+          return;
+        }
+        
+        toast.success('Checkout aberto em nova aba. Complete o pagamento para ativar sua assinatura.');
+        onSuccess();
+        onClose();
+      }
       // Se o backend retornou clientSecret, precisamos confirmar o pagamento
-      if (response.clientSecret) {
+      else if (response.clientSecret) {
         setCurrentStep('payment-processing');
         await handleStripePayment(response.clientSecret);
       } else {

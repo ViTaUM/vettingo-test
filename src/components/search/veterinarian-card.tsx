@@ -16,13 +16,36 @@ interface VeterinarianCardProps {
 }
 
 export default function VeterinarianCard({ veterinarian }: VeterinarianCardProps) {
-  const fullName = `Dr. ${veterinarian.firstName} ${veterinarian.lastName}`;
-  const workLocationsCount = parseInt(veterinarian.workLocationsCount) || 0;
+  // Extrair primeiro e último nome do nome completo
+  const nameParts = veterinarian.name?.split(' ') || [];
+  const firstName = nameParts[0] || '';
+  const lastName = nameParts[nameParts.length - 1] || '';
+  const fullName = `Dr. ${veterinarian.name}`;
+  
+  // Mapear campos do backend para os esperados pelo componente
+  const providesEmergencyService = veterinarian.emergencial || veterinarian.providesEmergencyService || false;
+  const providesHomeService = veterinarian.domiciliary || veterinarian.providesHomeService || false;
+  const workLocationsCount = parseInt(veterinarian.workLocationsCount || '1') || 1;
+  const isCurrentlyAttending = veterinarian.isCurrentlyAttending || false;
+
+  // Gerar iniciais do nome
+  const getInitials = () => {
+    if (firstName && lastName && firstName !== lastName) {
+      return `${firstName.charAt(0)}${lastName.charAt(0)}`;
+    } else if (firstName) {
+      const parts = veterinarian.name?.split(' ') || [];
+      if (parts.length >= 2) {
+        return `${parts[0].charAt(0)}${parts[1].charAt(0)}`;
+      }
+      return firstName.charAt(0);
+    }
+    return 'V';
+  };
 
   return (
     <div className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white transition-all duration-300 hover:border-blue-300">
       {/* Status Badge */}
-      {veterinarian.isCurrentlyAttending && (
+      {isCurrentlyAttending && (
         <div className="absolute right-3 top-3 z-10">
           <div className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700">
             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -36,9 +59,17 @@ export default function VeterinarianCard({ veterinarian }: VeterinarianCardProps
         <div className="flex items-start gap-3">
           {/* Avatar */}
           <div className="relative h-16 w-16 flex-shrink-0">
-            <div className="h-full w-full rounded-xl bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center text-white text-lg font-bold">
-              {veterinarian.firstName.charAt(0)}{veterinarian.lastName.charAt(0)}
-            </div>
+            {veterinarian.avatar ? (
+              <img
+                src={veterinarian.avatar}
+                alt={fullName}
+                className="h-full w-full rounded-xl object-cover"
+              />
+            ) : (
+              <div className="h-full w-full rounded-xl bg-gradient-to-br from-blue-500 to-emerald-500 flex items-center justify-center text-white text-lg font-bold">
+                {getInitials()}
+              </div>
+            )}
           </div>
 
           {/* Info */}
@@ -56,6 +87,14 @@ export default function VeterinarianCard({ veterinarian }: VeterinarianCardProps
               <MapPin className="h-3 w-3" />
               <span>{workLocationsCount} local{workLocationsCount !== 1 ? 'es' : ''} de atendimento</span>
             </div>
+
+            {/* Address if available */}
+            {veterinarian.address && (
+              <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                <MapPin className="h-3 w-3" />
+                <span className="truncate">{veterinarian.address}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -72,17 +111,24 @@ export default function VeterinarianCard({ veterinarian }: VeterinarianCardProps
         {/* Services */}
         <div className="mb-3">
           <div className="flex flex-wrap gap-1">
-            {veterinarian.providesHomeService && (
+            {providesHomeService && (
               <div className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
                 <Home className="h-3 w-3" />
                 Atende em domicílio
               </div>
             )}
             
-            {veterinarian.providesEmergencyService && (
+            {providesEmergencyService && (
               <div className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700">
                 <AlertTriangle className="h-3 w-3" />
                 Emergência 24h
+              </div>
+            )}
+
+            {veterinarian.website && (
+              <div className="flex items-center gap-1 rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                <ExternalLink className="h-3 w-3" />
+                Website
               </div>
             )}
           </div>
@@ -95,7 +141,7 @@ export default function VeterinarianCard({ veterinarian }: VeterinarianCardProps
             <div>
               <div className="text-xs text-gray-500">Disponível</div>
               <div className="text-xs font-medium text-gray-900">
-                {veterinarian.isCurrentlyAttending ? 'Agora' : 'Agende'}
+                {isCurrentlyAttending ? 'Agora' : 'Agende'}
               </div>
             </div>
           </div>

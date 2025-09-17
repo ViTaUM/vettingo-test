@@ -117,19 +117,27 @@ export interface Veterinarian {
 
 export interface VeterinarianSearchResult {
   id: number;
-  userId: number;
-  veterinarianId: number;
-  firstName: string;
-  lastName: string;
+  name: string; // Nome completo
   crmv: string;
-  crmvStateId: number;
   bio: string | null;
-  providesEmergencyService: boolean;
-  providesHomeService: boolean;
-  workLocationsCount: string;
-  isCurrentlyAttending: boolean;
-  createdAt: string;
-  updatedAt: string;
+  website?: string | null;
+  avatar?: string | null;
+  emergencial: boolean; // Serviço de emergência
+  domiciliary: boolean; // Serviço domiciliar
+  address?: string;
+  schedule?: string; // JSON string com horários
+  // Campos calculados/derivados que podem não vir do backend
+  userId?: number;
+  veterinarianId?: number;
+  firstName?: string;
+  lastName?: string;
+  crmvStateId?: number;
+  providesEmergencyService?: boolean;
+  providesHomeService?: boolean;
+  workLocationsCount?: string;
+  isCurrentlyAttending?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface UserBillingInfo {

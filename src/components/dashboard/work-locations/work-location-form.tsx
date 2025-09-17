@@ -30,12 +30,12 @@ const workLocationSchema = z.object({
   neighborhood: z.string().min(1, 'Bairro é obrigatório'),
   zipCode: z.string().min(8, 'CEP deve ter pelo menos 8 dígitos'),
   latitude: z.string().optional().refine(
-    (val) => !val || !isNaN(Number(val)), 
-    { message: 'Latitude deve ser um número válido' }
+    (val) => !val || val.trim() === '' || (!isNaN(Number(val)) && Number(val) >= -90 && Number(val) <= 90), 
+    { message: 'Latitude deve ser um número válido entre -90 e 90' }
   ),
   longitude: z.string().optional().refine(
-    (val) => !val || !isNaN(Number(val)), 
-    { message: 'Longitude deve ser um número válido' }
+    (val) => !val || val.trim() === '' || (!isNaN(Number(val)) && Number(val) >= -180 && Number(val) <= 180), 
+    { message: 'Longitude deve ser um número válido entre -180 e 180' }
   ),
 });
 
@@ -102,6 +102,17 @@ export default function WorkLocationForm({
   };
 
   const onSubmit = async (data: WorkLocationFormData) => {
+    // Validar se estado e cidade foram selecionados
+    if (!stateId || stateId === 0) {
+      onMessage?.({ type: 'error', text: 'Por favor, selecione um estado' });
+      return;
+    }
+    
+    if (!cityId || cityId === 0) {
+      onMessage?.({ type: 'error', text: 'Por favor, selecione uma cidade' });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -114,11 +125,9 @@ export default function WorkLocationForm({
         stateId,
         cityId,
         zipCode: cleanFormattedValue(data.zipCode),
-        // Converter strings para números e remover campos vazios
-        latitude: Number(data.latitude),
-        longitude: Number(data.longitude)
-        // ...(data.latitude && data.latitude.trim() !== '' && { latitude: Number(data.latitude) }),
-        // ...(data.longitude && data.longitude.trim() !== '' && { longitude: Number(data.longitude) })
+        // Só incluir latitude/longitude se foram preenchidos e são válidos
+        ...(data.latitude && data.latitude.trim() !== '' && !isNaN(Number(data.latitude)) && { latitude: Number(data.latitude) }),
+        ...(data.longitude && data.longitude.trim() !== '' && !isNaN(Number(data.longitude)) && { longitude: Number(data.longitude) })
       };
 
       if (location) {
@@ -267,26 +276,33 @@ export default function WorkLocationForm({
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <HookFormField
-            name="latitude"
-            type="text"
-            label="Latitude (opcional)"
-            placeholder="Ex: -23.5505"
-            control={control}
-            error={errors.latitude?.message}
-            disabled={loading}
-          />
+        <div className="border-t border-gray-200 pt-6">
+          <h3 className="text-md font-medium text-gray-900 mb-4">Coordenadas Geográficas (Opcional)</h3>
+          <p className="text-sm text-gray-600 mb-4">
+            As coordenadas ajudam a localizar seu estabelecimento com maior precisão nos mapas.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <HookFormField
+              name="latitude"
+              type="text"
+              label="Latitude"
+              placeholder="Ex: -23.5505"
+              control={control}
+              error={errors.latitude?.message}
+              disabled={loading}
+            />
 
-          <HookFormField
-            name="longitude"
-            type="text"
-            label="Longitude (opcional)"
-            placeholder="Ex: -46.6333"
-            control={control}
-            error={errors.longitude?.message}
-            disabled={loading}
-          />
+            <HookFormField
+              name="longitude"
+              type="text"
+              label="Longitude"
+              placeholder="Ex: -46.6333"
+              control={control}
+              error={errors.longitude?.message}
+              disabled={loading}
+            />
+          </div>
         </div>
 
         {location && (

@@ -194,8 +194,28 @@ export default function AgendamentoPage() {
       const response = await searchVeterinarians(params);
 
       if (response.success && response.data) {
-        // A nova API retorna os dados dos veterinários diretamente em response.data
-        setVeterinarians(response.data);
+        console.log('Dados recebidos do backend:', response.data);
+        
+        // Mapear os dados do backend para o formato esperado pelo componente
+        const mappedVeterinarians = response.data.map((vet: any) => {
+          console.log('Mapeando veterinário:', vet);
+          
+          return {
+            ...vet,
+            // Garantir compatibilidade com campos antigos
+            providesEmergencyService: vet.emergencial || vet.providesEmergencyService || false,
+            providesHomeService: vet.domiciliary || vet.providesHomeService || false,
+            veterinarianId: vet.veterinarianId || vet.id,
+            workLocationsCount: vet.workLocationsCount || '1',
+            isCurrentlyAttending: vet.isCurrentlyAttending || false,
+            // Extrair firstName e lastName do nome completo para compatibilidade
+            firstName: vet.name?.split(' ')[0] || '',
+            lastName: vet.name?.split(' ').slice(-1)[0] || '',
+          };
+        });
+        
+        console.log('Veterinários mapeados:', mappedVeterinarians);
+        setVeterinarians(mappedVeterinarians);
       } else {
         setVeterinarians([]);
         if (response.error) {
@@ -221,8 +241,8 @@ export default function AgendamentoPage() {
 
   // Calculate stats
   const currentlyAttending = veterinarians?.filter(v => v.isCurrentlyAttending).length || 0;
-  const homeServiceCount = veterinarians?.filter(v => v.providesHomeService).length || 0;
-  const emergencyServiceCount = veterinarians?.filter(v => v.providesEmergencyService).length || 0;
+  const homeServiceCount = veterinarians?.filter(v => v.domiciliary || v.providesHomeService).length || 0;
+  const emergencyServiceCount = veterinarians?.filter(v => v.emergencial || v.providesEmergencyService).length || 0;
 
   return (
     <div className="space-y-6">
@@ -381,7 +401,7 @@ export default function AgendamentoPage() {
                 {veterinarians.map((veterinarian) => (
                   <Link
                     key={veterinarian.id}
-                    href={`/veterinario/${veterinarian.veterinarianId}`}
+                    href={`/veterinario/${veterinarian.veterinarianId || veterinarian.id}`}
                     className="transition-all duration-300">
                     <VeterinarianCard veterinarian={veterinarian} />
                   </Link>

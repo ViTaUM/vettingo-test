@@ -128,6 +128,7 @@ export interface SubscriptionResponse {
   // Campos para fluxo de pagamento Stripe
   clientSecret?: string;
   subscriptionId?: number;
+  url?: string; // URL do Stripe Checkout
 }
 
 export interface PaymentMethodData {
