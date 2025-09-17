@@ -149,14 +149,10 @@ export default function VeterinarianProfileForm({
         };
 
         let result;
-        if (veterinarian) {
-          result = await updateVeterinarianProfile(profileData);
-        } else {
           result = await updateVeterinarianProfile(profileData);
           if (!result.success) {
             result = await createVeterinarianProfile(profileData);
           }
-        }
 
         if (result.success) {
           toast.success('Perfil profissional salvo com sucesso!');
