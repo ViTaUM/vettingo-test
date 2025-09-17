@@ -4,7 +4,7 @@ import SearchFilters from '@/components/search/filters';
 import VeterinarianCard from '@/components/search/veterinarian-card';
 import { PetDataLoading } from '@/components/ui/pet-data-loading';
 import { getCities, getSpecializations, getStates } from '@/lib/api/resources';
-import { searchVeterinarians } from '@/lib/api/veterinarians';
+import { searchVeterinariansByWorkLocation } from '@/lib/api/vet-work-locations';
 import { City, Specialization, SpecializationCategory, State, VeterinarianSearchResult } from '@/lib/types/api';
 import { debounce } from 'lodash';
 import { Filter, MapPin, Search, Sparkles, Stethoscope, TrendingUp, Users } from 'lucide-react';
@@ -185,10 +185,25 @@ export default function SearchResults() {
         ...(selectedSpecialization && { specializationIds: [selectedSpecialization.id] }),
       };
 
-      const response = await searchVeterinarians(params);
+      const response = await searchVeterinariansByWorkLocation(params);
 
       if (response.success && response.data) {
-        setVeterinarians(response.data);
+        // Mapear os dados do backend para o formato esperado pelo componente
+        const mappedVeterinarians = response.data.map((vet: any) => {
+          return {
+            ...vet,
+            // Garantir compatibilidade com campos antigos
+            providesEmergencyService: vet.emergencial || vet.providesEmergencyService || false,
+            providesHomeService: vet.domiciliary || vet.providesHomeService || false,
+            veterinarianId: vet.veterinarianId || vet.id,
+            workLocationsCount: vet.workLocationsCount || '1',
+            isCurrentlyAttending: vet.isCurrentlyAttending || false,
+            // Extrair firstName e lastName do nome completo para compatibilidade
+            firstName: vet.name?.split(' ')[0] || '',
+            lastName: vet.name?.split(' ').slice(-1)[0] || '',
+          };
+        });
+        setVeterinarians(mappedVeterinarians);
       } else {
         setVeterinarians([]);
         if (response.error) {
@@ -215,8 +230,8 @@ export default function SearchResults() {
 
   // Calculate stats
   const currentlyAttending = veterinarians?.filter(v => v.isCurrentlyAttending).length || 0;
-  const homeServiceCount = veterinarians?.filter(v => v.providesHomeService).length || 0;
-  const emergencyServiceCount = veterinarians?.filter(v => v.providesEmergencyService).length || 0;
+  const homeServiceCount = veterinarians?.filter(v => v.domiciliary || v.providesHomeService).length || 0;
+  const emergencyServiceCount = veterinarians?.filter(v => v.emergencial || v.providesEmergencyService).length || 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
@@ -413,7 +428,7 @@ export default function SearchResults() {
                     {veterinarians.map((veterinarian) => (
                       <Link
                         key={veterinarian.id}
-                        href={`/veterinario/${veterinarian.veterinarianId}`}
+                        href={`/veterinario/${veterinarian.veterinarianId || veterinarian.id}`}
                         className="transition-all duration-300">
                         <VeterinarianCard veterinarian={veterinarian} />
                       </Link>
