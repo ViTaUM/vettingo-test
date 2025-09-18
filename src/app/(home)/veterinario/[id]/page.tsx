@@ -211,11 +211,6 @@ export default function VeterinarianDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewsPage, setReviewsPage] = useState(1);
-  const [workLocationFilters, setWorkLocationFilters] = useState({
-    active: true,
-    orderBy: 'name' as 'name' | 'createdAt' | 'updatedAt',
-    orderDirection: 'asc' as 'asc' | 'desc',
-  });
   
   const { isAuthenticated, isUser } = useAuthStatus();
   

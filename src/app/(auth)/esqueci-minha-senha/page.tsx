@@ -29,7 +29,7 @@ export default function ForgotPassword() {
       } else {
         setError(result.error || 'Erro ao solicitar recuperação de senha');
       }
-    } catch (err) {
+    } catch {
       setError('Erro inesperado ao solicitar recuperação de senha');
     } finally {
       setIsLoading(false);

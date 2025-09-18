@@ -7,7 +7,7 @@ import { getCities, getSpecializations, getStates } from '@/lib/api/resources';
 import { searchVeterinariansByWorkLocationClient } from '@/lib/api/vet-work-locations';
 import { City, Specialization, SpecializationCategory, State, VeterinarianSearchResult } from '@/lib/types/api';
 import { debounce } from 'lodash';
-import { Calendar, Filter, MapPin, Search, Sparkles, Stethoscope, TrendingUp, Users } from 'lucide-react';
+import { Calendar, Filter, MapPin, Search, Sparkles, TrendingUp, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState, useTransition } from 'react';
@@ -108,14 +108,14 @@ export default function AgendamentoPage() {
     debounce((value: string) => {
       setQueryName(value);
     }, 500),
-    []
+    [setQueryName]
   );
 
   const handleQueryCrmvChange = useCallback(
     debounce((value: string) => {
       setQueryCrmv(value);
     }, 500),
-    []
+    [setQueryCrmv]
   );
 
   const handleCategoryChange = (value: string) => {
@@ -195,7 +195,7 @@ export default function AgendamentoPage() {
 
       if (response.success && response.data) {
         // Mapear os dados do backend para o formato esperado pelo componente
-        const mappedVeterinarians = response.data.map((vet: any) => {
+        const mappedVeterinarians = response.data.map((vet: VeterinarianSearchResult) => {
           return {
             ...vet,
             // Garantir compatibilidade com campos antigos
@@ -231,6 +231,7 @@ export default function AgendamentoPage() {
     queryName,
     queryCrmv,
     selectedSpecialization,
+    isInitialLoad,
   ]);
 
   // Calculate stats

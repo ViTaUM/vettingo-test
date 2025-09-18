@@ -3,23 +3,18 @@
 import { PetDataLoading } from '@/components/ui/pet-data-loading';
 import SpotlightCard from '@/components/ui/spotlight-card';
 import CreateReviewForm from '@/components/veterinarian/create-review-form';
-import ReviewsList from '@/components/veterinarian/reviews-list';
+
 import AppointmentModal from '@/components/veterinarian/appointment-modal';
 import { useAuthStatus } from '@/hooks/use-auth-status';
 import { getVeterinarianDashboardClient } from '@/lib/api/vet-work-locations';
 import {
     AlertTriangle,
     ArrowLeft,
-    Award,
     Calendar,
     Clock,
-    ExternalLink,
     Home,
-    Mail,
     MapPin,
     MessageSquare,
-    Phone,
-    Shield,
     Star,
     Stethoscope
 } from 'lucide-react';
@@ -91,7 +86,7 @@ export default function VeterinarianDashboardPage() {
           router.push('/busca');
         }
         
-      } catch (error) {
+      } catch {
         toast.error('Erro ao carregar dados do veterinário');
         router.push('/busca');
       } finally {
@@ -307,7 +302,7 @@ export default function VeterinarianDashboardPage() {
                         <div>
                           <h4 className="font-medium text-gray-900 text-sm mb-2">Horários:</h4>
                           <div className="flex flex-wrap gap-2">
-                            {parseSchedule(location.schedule).map((item: any, index: number) => {
+                            {parseSchedule(location.schedule).map((item: Record<string, string>, index: number) => {
                               const dayName = Object.keys(item)[0];
                               const hours = item[dayName];
                               return (

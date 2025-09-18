@@ -153,7 +153,7 @@ export default function PetDetailsPage() {
       // Inicializar com dados mock apenas para consultas
       setConsultations(mockConsultations);
     }
-  }, [petId, router]);
+  }, [petId, router, loadDocuments, loadVaccines, mockConsultations]);
 
   const formatBirthDate = (birthDate: Date) => {
     return new Date(birthDate).toLocaleDateString('pt-BR');
@@ -202,18 +202,7 @@ export default function PetDetailsPage() {
     }
   };
 
-  const getDocumentIcon = (type: string) => {
-    switch (type) {
-      case 'exam':
-        return '🔬';
-      case 'prescription':
-        return '💊';
-      case 'certificate':
-        return '📋';
-      default:
-        return '📄';
-    }
-  };
+
 
   const handleVaccineSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1210,6 +1199,7 @@ export default function PetDetailsPage() {
                  selectedDocument.document.toLowerCase().includes('.gif') ? (
                   <div className="h-full flex flex-col">
                     <div className="flex-1 flex items-center justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img 
                         src={selectedDocument.document} 
                         alt={selectedDocument.title}

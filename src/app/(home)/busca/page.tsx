@@ -189,7 +189,7 @@ export default function SearchResults() {
 
       if (response.success && response.data) {
         // Mapear os dados do backend para o formato esperado pelo componente
-        const mappedVeterinarians = response.data.map((vet: any) => {
+        const mappedVeterinarians = response.data.map((vet: VeterinarianSearchResult) => {
           return {
             ...vet,
             // Garantir compatibilidade com campos antigos

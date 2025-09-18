@@ -4,13 +4,13 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import MyLink from '@/components/link';
 import StrongPasswordFeedback from '@/components/form/strong-password-feedback';
-import { ArrowLeft, Key, CheckCircle, PawPrint, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Key, CheckCircle, AlertCircle } from 'lucide-react';
 import { resetPasswordWithToken } from '@/lib/api/auth';
 
 // Schema adaptado do password-change-form.tsx, removendo currentPassword
@@ -36,7 +36,6 @@ export default function ResetPassword() {
   const [token, setToken] = useState<string | null>(null);
   
   const searchParams = useSearchParams();
-  const router = useRouter();
   
   const { register, handleSubmit, watch, formState: { errors } } = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
@@ -75,7 +74,7 @@ export default function ResetPassword() {
       } else {
         setError(result.error || 'Erro ao redefinir senha');
       }
-    } catch (err) {
+    } catch {
       setError('Erro inesperado ao redefinir senha');
     } finally {
       setIsLoading(false);

@@ -2,12 +2,6 @@ import SpotlightCard from '@/components/ui/spotlight-card';
 import { Award, CheckCircle, Eye, Heart, MapPin, PawPrint, Star, Target, Users } from 'lucide-react';
 
 export default function SobrePage() {
-  const stats = [
-    { number: '+1000', label: 'Veterinários cadastrados' },
-    { number: '+50k', label: 'Pets atendidos' },
-    { number: '4.8★', label: 'Avaliação média' },
-    { number: 'Sempre', label: 'Suporte disponível' },
-  ];
 
   const values = [
     {
@@ -94,7 +88,7 @@ export default function SobrePage() {
           </div>
 
           {/* Stats */}
-          <div className="mx-auto mb-16 grid max-w-4xl grid-cols-2 gap-6 md:grid-cols-4">
+          {/* <div className="mx-auto mb-16 grid max-w-4xl grid-cols-2 gap-6 md:grid-cols-4">
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
                 <div className="text-2xl font-bold text-gray-900 md:text-3xl">{stat.number}</div>
@@ -102,6 +96,7 @@ export default function SobrePage() {
               </div>
             ))}
           </div>
+          */}
         </div>
       </section>
 

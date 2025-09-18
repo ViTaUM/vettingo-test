@@ -83,7 +83,6 @@ export default function CTASection() {
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </UIButton>
                 </Link>
-                <p className="text-sm text-blue-200">Teste grátis por 7 dias • Comece com R$ 29,90/mês</p>
               </div>
             </div>
           </div>
@@ -127,7 +126,7 @@ export default function CTASection() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-purple-900">Plano Profissional - Mais Popular</p>
-                    <p className="text-xs text-purple-700">R$ 49,90/mês com todos os recursos</p>
+                    <p className="text-xs text-purple-700">R$ 99,90/mês com todos os recursos</p>
                   </div>
                 </div>
               </div>

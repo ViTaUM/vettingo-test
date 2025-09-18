@@ -103,6 +103,43 @@ export async function requestPasswordResetAction(email: string) {
   }
 }
 
+export async function forgotPassword(email: string) {
+  try {
+    await apiRequest('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+      cache: 'no-store',
+    });
+
+    return { 
+      success: true, 
+      message: 'Um email de recuperação de senha foi enviado para o endereço informado!' 
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao solicitar recuperação de senha',
+    };
+  }
+}
+
+export async function resetPasswordWithToken(token: string, newPassword: string) {
+  try {
+    await apiRequest('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword }),
+      cache: 'no-store',
+    });
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao redefinir senha',
+    };
+  }
+}
+
 export async function getSecurityLogsAction() {
   try {
     const logs = await apiRequest<
