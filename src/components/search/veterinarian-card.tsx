@@ -25,7 +25,7 @@ export default function VeterinarianCard({ veterinarian }: VeterinarianCardProps
   // Mapear campos do backend para os esperados pelo componente
   const providesEmergencyService = veterinarian.emergencial || veterinarian.providesEmergencyService || false;
   const providesHomeService = veterinarian.domiciliary || veterinarian.providesHomeService || false;
-  const workLocationsCount = parseInt(veterinarian.workLocationsCount || '1') || 1;
+  const workLocationsCount = parseInt(veterinarian.totalworklocation?.toString() || veterinarian.workLocationsCount || '1') || 1;
   const isCurrentlyAttending = veterinarian.isCurrentlyAttending || false;
 
   // Gerar iniciais do nome

@@ -124,6 +124,7 @@ export interface VeterinarianSearchResult {
   avatar?: string | null;
   emergencial: boolean; // Serviço de emergência
   domiciliary: boolean; // Serviço domiciliar
+  totalworklocation?: number; // Total de locais de trabalho (campo do backend)
   address?: string;
   schedule?: string; // JSON string com horários
   // Campos calculados/derivados que podem não vir do backend

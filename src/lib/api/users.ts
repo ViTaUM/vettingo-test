@@ -4,7 +4,7 @@ import { apiRequest } from '@/lib/api/config';
 import { User, UserAddress, UserEmail, UserPhone } from '@/lib/types/api';
 import { revalidateTag } from 'next/cache';
 
-export async function getCurrentUser(): Promise<{ success: boolean; user?: User; error?: string; isAuthError?: boolean }> {
+export async function getCurrentUser(): Promise<{ success: boolean; user?: User; error?: string }> {
   try {
     const user = await apiRequest<User>('/users/me', {
       next: {
@@ -14,18 +14,9 @@ export async function getCurrentUser(): Promise<{ success: boolean; user?: User;
     });
     return { success: true, user };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Erro ao buscar usuário';
-    
-    // Verificar se é erro de autenticação
-    const isAuthError = errorMessage === 'UNAUTHORIZED_TOKEN' || 
-                       errorMessage.includes('401') || 
-                       errorMessage.includes('Unauthorized') ||
-                       errorMessage.includes('não autorizado');
-    
     return {
       success: false,
-      error: errorMessage,
-      isAuthError
+      error: error instanceof Error ? error.message : 'Erro ao buscar usuário',
     };
   }
 }

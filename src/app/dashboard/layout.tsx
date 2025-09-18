@@ -1,11 +1,11 @@
 import AdminDashboardSidebar from '@/components/dashboard/admin-sidebar';
 import UserDashboardSidebar from '@/components/dashboard/user-sidebar';
 import VetDashboardSidebar from '@/components/dashboard/vet-sidebar';
+import { logoutAction } from '@/lib/api/auth';
 import { getCurrentUser } from '@/lib/api/users';
 import { DashboardProvider } from '@/lib/contexts/dashboard-context';
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
 import StoreProvider from '../store-provider';
 import BillingProvider from '@/providers/billing-provider';
@@ -15,29 +15,10 @@ export default async function DashboardLayout({
 }: Readonly<{
   children: ReactNode;
 }>) {
-  // Primeiro verificar se há token
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth-token');
-
-  if (!token?.value) {
-    // Se não há token, redirecionar diretamente
-    redirect('/login');
-  }
-
-  // Tentar obter usuário atual
   const userResult = await getCurrentUser();
 
   if (!userResult.success || !userResult.user) {
-    // Se falhou ao obter usuário, limpar token e redirecionar
-    console.log('Dashboard: Falha ao obter usuário:', userResult.error);
-    
-    // Se é erro de autenticação ou não há usuário, limpar token
-    if (userResult.isAuthError || !userResult.user) {
-      console.log('Dashboard: Limpando token e redirecionando para login');
-      cookieStore.delete('auth-token');
-    }
-    
-    redirect('/login');
+    return await logoutAction();
   }
 
   const user = userResult.user;

@@ -1,7 +1,6 @@
 import { getCurrentUser } from '@/lib/api/users';
 import { User } from '@/lib/types/api';
 import { useEffect, useMemo, useState } from 'react';
-import { handleAuthError } from '@/utils/auth-error-handler';
 
 export function useAuthStatus() {
   const [user, setUser] = useState<User | null>(null);
@@ -22,14 +21,11 @@ export function useAuthStatus() {
           setUser(null);
           if (result.error) {
             setError(result.error);
-            await handleAuthError(result.error);
           }
         }
-      } catch (err) {
+      } catch {
         setUser(null);
-        const errorMessage = err instanceof Error ? err.message : 'Erro ao verificar autenticação';
-        setError(errorMessage);
-        await handleAuthError(err as Error);
+        setError('Erro ao verificar autenticação');
       } finally {
         setLoading(false);
       }

@@ -18,6 +18,7 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
 
   const url = `${apiUrl}${endpoint}`;
   
+  try {
     const response = await fetch(url, config);
 
     if (!response.ok) {
@@ -35,12 +36,6 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
         statusText: response.statusText,
         error: errorData,
       });
-
-    // Se o token não for válido (401 Unauthorized), lançar erro específico
-    if (response.status === 401) {
-      console.log('Token inválido ou expirado detectado');
-      throw new Error('UNAUTHORIZED_TOKEN');
-    }
 
       throw new Error(errorData.message || errorData.error || `Erro ${response.status}`);
     }
@@ -77,5 +72,13 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
     } catch (jsonError) {
       console.warn('Erro ao fazer parse do JSON, retornando null:', jsonError);
       return null as T;
+    }
+  } catch (error) {
+    console.error('Erro na requisição para', url, error);
+
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Erro de comunicação com a API');
   }
 }

@@ -4,7 +4,7 @@ import SearchFilters from '@/components/search/filters';
 import VeterinarianCard from '@/components/search/veterinarian-card';
 import { PetDataLoading } from '@/components/ui/pet-data-loading';
 import { getCities, getSpecializations, getStates } from '@/lib/api/resources';
-import { searchVeterinariansByWorkLocation } from '@/lib/api/vet-work-locations';
+import { searchVeterinariansByWorkLocationClient } from '@/lib/api/vet-work-locations';
 import { City, Specialization, SpecializationCategory, State, VeterinarianSearchResult } from '@/lib/types/api';
 import { debounce } from 'lodash';
 import { Filter, MapPin, Search, Sparkles, Stethoscope, TrendingUp, Users } from 'lucide-react';
@@ -185,7 +185,7 @@ export default function SearchResults() {
         ...(selectedSpecialization && { specializationIds: [selectedSpecialization.id] }),
       };
 
-      const response = await searchVeterinariansByWorkLocation(params);
+      const response = await searchVeterinariansByWorkLocationClient(params);
 
       if (response.success && response.data) {
         // Mapear os dados do backend para o formato esperado pelo componente
@@ -428,7 +428,7 @@ export default function SearchResults() {
                     {veterinarians.map((veterinarian) => (
                       <Link
                         key={veterinarian.id}
-                        href={`/veterinario/${veterinarian.veterinarianId || veterinarian.id}`}
+                        href={`/veterinario/vet-dashboard?vetId=${veterinarian.id}&cityId=${selectedCity?.id || 0}`}
                         className="transition-all duration-300">
                         <VeterinarianCard veterinarian={veterinarian} />
                       </Link>

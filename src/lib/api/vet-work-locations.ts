@@ -331,3 +331,172 @@ export async function searchVeterinariansByWorkLocation(params: {
     };
   }
 } 
+
+export async function getVeterinarianDashboard(vetId: number, cityId: number): Promise<{
+  success: boolean;
+  data?: {
+    veterinarian: any[];
+    review: any[];
+  };
+  error?: string;
+}> {
+  try {
+    const searchParams = new URLSearchParams();
+    searchParams.append('vetId', vetId.toString());
+    searchParams.append('cityId', cityId.toString());
+
+    const url = `/vet-dashboard?${searchParams.toString()}`;
+    
+    const data = await apiRequest<{
+      veterinarian: any[];
+      review: any[];
+    }>(url);
+    
+    return { success: true, data };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao buscar dados do veterinário',
+    };
+  }
+} 
+
+// Utilitários para client-side
+const getApiUrl = () => {
+  return process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:8080';
+};
+
+const getTokenFromCookie = (): string | null => {
+  if (typeof document !== 'undefined') {
+    const cookies = document.cookie.split(';');
+    const authCookie = cookies.find(cookie => cookie.trim().startsWith('auth-token='));
+    if (authCookie) {
+      const token = authCookie.split('=')[1];
+      return decodeURIComponent(token);
+    }
+  }
+  return null;
+};
+
+// Função client-side para buscar veterinários com autenticação
+export async function searchVeterinariansByWorkLocationClient(params: {
+  cityId: number;
+  name?: string;
+  crmv?: string;
+  providesHomeService?: boolean;
+  providesEmergencyService?: boolean;
+  gender?: string;
+  availableToday?: boolean;
+  specializationIds?: number[];
+}): Promise<{ success: boolean; data?: any[]; error?: string }> {
+  try {
+    const searchParams = new URLSearchParams();
+
+    // Parâmetro obrigatório
+    searchParams.append('cityId', params.cityId.toString());
+
+    // Parâmetros opcionais
+    if (params.name) searchParams.append('name', params.name);
+    if (params.crmv) searchParams.append('crmv', params.crmv);
+    if (params.providesHomeService !== undefined)
+      searchParams.append('providesHomeService', params.providesHomeService.toString());
+    if (params.providesEmergencyService !== undefined)
+      searchParams.append('providesEmergencyService', params.providesEmergencyService.toString());
+    if (params.gender) searchParams.append('gender', params.gender);
+    if (params.availableToday !== undefined) 
+      searchParams.append('availableToday', params.availableToday.toString());
+    if (params.specializationIds) {
+      params.specializationIds.forEach((id) => searchParams.append('specializationIds', id.toString()));
+    }
+
+    const url = `/vet-work-locations/any?${searchParams.toString()}`;
+    const apiUrl = getApiUrl();
+    const token = getTokenFromCookie();
+    
+    const response = await fetch(`${apiUrl}${url}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    });
+
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = {
+          message: `Erro HTTP ${response.status}: ${response.statusText}`,
+        };
+      }
+
+      if (response.status === 401) {
+        throw new Error('Token inválido ou expirado');
+      }
+
+      throw new Error(errorData.message || errorData.error || `Erro ${response.status}`);
+    }
+
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao buscar veterinários por locais de trabalho',
+    };
+  }
+}
+
+// Função client-side para buscar dados do dashboard do veterinário
+export async function getVeterinarianDashboardClient(vetId: number, cityId: number): Promise<{
+  success: boolean;
+  data?: {
+    veterinarian: any[];
+    review: any[];
+  };
+  error?: string;
+}> {
+  try {
+    const searchParams = new URLSearchParams();
+    searchParams.append('vetId', vetId.toString());
+    searchParams.append('cityId', cityId.toString());
+
+    const url = `/vet-dashboard?${searchParams.toString()}`;
+    const apiUrl = getApiUrl();
+    const token = getTokenFromCookie();
+    
+    const response = await fetch(`${apiUrl}${url}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    });
+
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = {
+          message: `Erro HTTP ${response.status}: ${response.statusText}`,
+        };
+      }
+
+      if (response.status === 401) {
+        throw new Error('Token inválido ou expirado');
+      }
+
+      throw new Error(errorData.message || errorData.error || `Erro ${response.status}`);
+    }
+
+    const data = await response.json();
+    return { success: true, data };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro ao buscar dados do veterinário',
+    };
+  }
+} 
