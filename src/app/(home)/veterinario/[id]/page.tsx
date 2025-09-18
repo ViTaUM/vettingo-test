@@ -256,13 +256,13 @@ export default function VeterinarianDetailsPage() {
     orderBy?: 'name' | 'createdAt' | 'updatedAt';
     orderDirection?: 'asc' | 'desc';
   }) => {
-    setWorkLocationFilters(prev => ({
+   /* setWorkLocationFilters(prev => ({
       ...prev,
       ...filters,
       active: filters.active ?? prev.active,
       orderBy: filters.orderBy ?? prev.orderBy,
       orderDirection: filters.orderDirection ?? prev.orderDirection,
-    }));
+    })); */
   };
 
   if (loading) {

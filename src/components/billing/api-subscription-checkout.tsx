@@ -30,7 +30,8 @@ export default function ApiSubscriptionCheckout({ plan, onSuccess, onError }: Ap
     try {
       const subscription = await createSubscription({
         planSlug: plan.slug,
-        paymentMethodId: '', // Será preenchido pela API
+        paymentMethodId: '',
+        period: 'month',
       });
 
       if (subscription) {
