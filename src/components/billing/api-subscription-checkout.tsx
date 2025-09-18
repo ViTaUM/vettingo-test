@@ -7,11 +7,19 @@ import { useState } from 'react';
 
 interface ApiSubscriptionCheckoutProps {
   plan: SubscriptionPlanResponse;
+  period?: 'month' | 'year';
+  paymentMethodId?: string;
   onSuccess?: () => void;
   onError?: (error: string) => void;
 }
 
-export default function ApiSubscriptionCheckout({ plan, onSuccess, onError }: ApiSubscriptionCheckoutProps) {
+export default function ApiSubscriptionCheckout({ 
+  plan, 
+  period = 'month', 
+  paymentMethodId = '', 
+  onSuccess, 
+  onError 
+}: ApiSubscriptionCheckoutProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,8 +38,8 @@ export default function ApiSubscriptionCheckout({ plan, onSuccess, onError }: Ap
     try {
       const subscription = await createSubscription({
         planSlug: plan.slug,
-        paymentMethodId: '',
-        period: 'month',
+        paymentMethodId: paymentMethodId,
+        period: period,
       });
 
       if (subscription) {
@@ -57,8 +65,12 @@ export default function ApiSubscriptionCheckout({ plan, onSuccess, onError }: Ap
             <p className="text-sm text-gray-600">{plan.description}</p>
           </div>
           <div className="text-right">
-            <div className="text-lg font-semibold text-gray-900">{formatPrice(plan.priceMonthly || 0)}</div>
-            <div className="text-sm text-gray-500">/mês</div>
+            <div className="text-lg font-semibold text-gray-900">
+              {formatPrice(period === 'year' ? (plan.priceYearly || 0) : (plan.priceMonthly || 0))}
+            </div>
+            <div className="text-sm text-gray-500">
+              /{period === 'year' ? 'ano' : 'mês'}
+            </div>
           </div>
         </div>
       </div>

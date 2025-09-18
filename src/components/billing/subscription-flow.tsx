@@ -47,6 +47,7 @@ export default function SubscriptionFlow({ onSuccess, onCancel }: SubscriptionFl
       const subscriptionData = {
         planSlug: selectedPlan.slug,
         paymentMethodId: '', // Será preenchido pela API
+        period: selectedInterval === 'yearly' ? 'year' : 'month',
       };
 
       await createSubscription(subscriptionData);
@@ -102,6 +103,7 @@ export default function SubscriptionFlow({ onSuccess, onCancel }: SubscriptionFl
 
         <ApiSubscriptionCheckout
           plan={selectedPlan}
+          period={selectedInterval === 'yearly' ? 'year' : 'month'}
           onSuccess={() => {
             handleCheckoutSuccess();
           }}
