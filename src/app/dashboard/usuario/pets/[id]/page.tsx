@@ -44,13 +44,13 @@ export default function PetDetailsPage() {
   const [vaccines, setVaccines] = useState<PetVaccine[]>([]);
   const [documents, setDocuments] = useState<PetDocument[]>([]);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
-  const [vaccineFormData, setVaccineFormData] = useState({
+  const [vaccineFormData, setVaccineFormData] = useState<CreatePetVaccineDto>({
     vaccineName: '',
     vaccinationDate: '',
     nextDueDate: '',
     vetId: 1,
     batchNumber: '',
-    status: 'PENDENTE' as 'PENDENTE' | 'APLICADA' | 'ATRASADA' | 'NÃO APLICADA',
+    status: 'PENDENTE',
     notes: '',
   });
   const [documentFormData, setDocumentFormData] = useState({
@@ -250,7 +250,7 @@ export default function PetDetailsPage() {
       nextDueDate: '',
       vetId: 1,
       batchNumber: '',
-      status: 'PENDENTE' as 'PENDENTE' | 'APLICADA' | 'ATRASADA' | 'NÃO APLICADA',
+      status: 'PENDENTE',
       notes: '',
     });
   };
