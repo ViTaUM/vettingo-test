@@ -132,7 +132,7 @@ export default function TestimonialsSection() {
                 {/* CTA */}
                 <div className="text-center">
                   <div className="mb-4">
-                    <div className="text-3xl font-bold text-gray-900">R$ 99,90</div>
+                    <div className="text-3xl font-bold text-gray-900">R$ 49,90</div>
                     <div className="text-sm text-gray-500">por mês</div>
                   </div>
                   

@@ -126,7 +126,7 @@ export default function CTASection() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-purple-900">Plano Profissional - Mais Popular</p>
-                    <p className="text-xs text-purple-700">R$ 99,90/mês com todos os recursos</p>
+                    <p className="text-xs text-purple-700">R$ 49,90/mês com todos os recursos</p>
                   </div>
                 </div>
               </div>
